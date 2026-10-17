@@ -1,0 +1,8 @@
+{
+  "name": "Neighbour Network",
+  "description": "Exclusive private residential community and concierge platform for Pune's premier luxury apartment societies, featuring cross-society social networking, isolated society governance, real-time SOS broadcast, gate pass verification, and interactive 3D architectural building visualization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
