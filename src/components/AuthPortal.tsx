@@ -153,12 +153,22 @@ export function AuthPortal({
 
       const { data: row, error: profileError } = await supabase
         .from('profiles')
+        .upsert({
+          id: data.user.id,
+          full_name: trimmedName,
+          email: trimmedEmail,
+          apartment_id: selectedApartmentId,
+          flat_no: trimmedFlat,
+          role: 'resident',
+          admin_title: null,
+          is_verified: false,
+          warnings_count: 0,
+        }, { onConflict: 'id' })
         .select('*')
-        .eq('id', data.user.id)
         .single();
       if (profileError || !row) {
         await supabase.auth.signOut();
-        throw new Error('Your account was created, but the resident profile could not be loaded. Please contact the administrator.');
+        throw new Error(profileError?.message || 'Your account was created, but the resident profile could not be saved. Please contact the administrator.');
       }
       onRegisterProfile(row as Profile, false);
     } catch (error) {
