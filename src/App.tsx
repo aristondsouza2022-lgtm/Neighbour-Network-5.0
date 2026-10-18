@@ -1373,28 +1373,30 @@ export default function App() {
               profiles={profiles}
               currentApartment={currentApartment}
               currentUser={currentUser}
-              onCreateListing={(newItem) => {
-                const created: MarketplaceItem = {
-                  ...newItem,
-                  id: `mkt-${Date.now()}`,
+              onCreateListing={async (newItem) => {
+                if (!supabase) return;
+                const { data, error } = await supabase.from('marketplace_items').insert({
+                  apartment_id: currentUser.apartment_id,
+                  seller_id: currentUser.id,
+                  title: newItem.title,
+                  description: newItem.description,
+                  category: newItem.category,
+                  listing_type: newItem.listing_type,
+                  sale_price: newItem.sale_price ?? null,
+                  rent_price_per_day: newItem.rent_price_per_day ?? null,
+                  image_url: newItem.image_url?.startsWith('http') ? newItem.image_url : null,
                   status: 'available',
-                  created_at: new Date().toISOString(),
-                };
-                setMarketplaceItems((prev) => [created, ...prev]);
+                }).select('*').single();
+                if (error) { console.error('Could not save marketplace listing:', error.message); window.alert('Could not save listing. Please check that you are signed in and try again.'); return; }
+                setMarketplaceItems((prev) => [data as MarketplaceItem, ...prev]);
               }}
-              onUpdateStatus={(itemId, status) => {
-                setMarketplaceItems((prev) =>
-                  prev.map((item) =>
-                    item.id === itemId
-                      ? {
-                          ...item,
-                          status,
-                          buyer_or_renter_id:
-                            status === 'available' ? null : currentUser.id,
-                        }
-                      : item
-                  )
-                );
+              onUpdateStatus={async (itemId, status) => {
+                if (!supabase) return;
+                const { data, error } = await supabase.from('marketplace_items').update({
+                  status, buyer_or_renter_id: status === 'available' ? null : currentUser.id,
+                }).eq('id', itemId).select('*').single();
+                if (error) { console.error('Could not update listing:', error.message); window.alert('Could not update listing. Please try again.'); return; }
+                setMarketplaceItems((prev) => prev.map((item) => item.id === itemId ? data as MarketplaceItem : item));
               }}
             />
           )}
@@ -1437,31 +1439,42 @@ export default function App() {
               profiles={profiles}
               currentApartment={currentApartment}
               currentUser={currentUser}
-              onVotePoll={(pollId, optionId) => {
-                setPolls((prev) =>
-                  prev.map((poll) => {
-                    if (poll.id !== pollId) return poll;
-                    const res = castPollVote(poll, optionId, currentUser.id);
-                    return res.updatedPoll;
-                  })
-                );
+              onVotePoll={async (pollId, optionId) => {
+                if (!supabase) return;
+                const { error: removeError } = await supabase.from('poll_votes').delete().eq('profile_id', currentUser.id).in('option_id', polls.find((p) => p.id === pollId)?.options.map((o) => o.id) ?? []);
+                if (removeError) { console.error('Could not replace poll vote:', removeError.message); window.alert('Your vote could not be saved. Please try again.'); return; }
+                const { error } = await supabase.from('poll_votes').insert({ option_id: optionId, profile_id: currentUser.id });
+                if (error) { console.error('Could not save poll vote:', error.message); window.alert('Your vote could not be saved. Please try again.'); return; }
+                setPolls((prev) => prev.map((poll) => {
+                  if (poll.id !== pollId) return poll;
+                  const res = castPollVote(poll, optionId, currentUser.id);
+                  return res.updatedPoll;
+                }));
               }}
-              onCreatePoll={(newPoll) => {
-                setPolls((prev) => [
-                  {
-                    ...newPoll,
-                    id: `poll-${Date.now()}`,
-                    created_at: new Date().toISOString(),
-                  },
-                  ...prev,
-                ]);
+              onCreatePoll={async (newPoll) => {
+                if (!supabase) return;
+                const { data: created, error } = await supabase.from('community_polls').insert({
+                  apartment_id: currentUser.apartment_id, created_by: currentUser.id,
+                  question: newPoll.question, description: newPoll.description,
+                  closes_at: newPoll.closes_at, options: newPoll.options.map((o) => ({ label: o.label })),
+                }).select('*').single();
+                if (error || !created) { console.error('Could not save poll:', error?.message); window.alert('Could not create poll. Please try again.'); return; }
+                const { data: optionRows, error: optionError } = await supabase.from('poll_options').insert(newPoll.options.map((o) => ({ poll_id: created.id, label: o.label }))).select('*');
+                if (optionError) { console.error('Could not save poll options:', optionError.message); window.alert('Poll was created but options could not be saved.'); return; }
+                setPolls((prev) => [{ ...created, options: (optionRows ?? []).map((o) => ({ id: o.id, label: o.label, votes: [] })) } as CommunityPoll, ...prev]);
               }}
-              onUpdatePoll={(updated) => {
-                setPolls((prev) =>
-                  prev.map((p) => (p.id === updated.id ? updated : p))
-                );
+              onUpdatePoll={async (updated) => {
+                if (!supabase) return;
+                const { error } = await supabase.from('community_polls').update({
+                  question: updated.question, description: updated.description, closes_at: updated.closes_at,
+                }).eq('id', updated.id);
+                if (error) { console.error('Could not update poll:', error.message); window.alert('Could not update poll. Please try again.'); return; }
+                setPolls((prev) => prev.map((p) => p.id === updated.id ? updated : p));
               }}
-              onDeletePoll={(pollId) => {
+              onDeletePoll={async (pollId) => {
+                if (!supabase) return;
+                const { error } = await supabase.from('community_polls').delete().eq('id', pollId);
+                if (error) { console.error('Could not delete poll:', error.message); window.alert('Could not delete poll. Please try again.'); return; }
                 setPolls((prev) => prev.filter((p) => p.id !== pollId));
               }}
               onToggleEventInterest={(eventId) => {
