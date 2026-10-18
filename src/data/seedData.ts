@@ -14,7 +14,7 @@ import {
 
 export const INITIAL_APARTMENTS: Apartment[] = [
   {
-    id: 'apt-trump',
+    id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     name: 'Trump Towers',
     location: 'Kalyani Nagar, Pune',
     max_houses: 100,
@@ -31,7 +31,7 @@ export const INITIAL_APARTMENTS: Apartment[] = [
     created_at: '2026-01-15T08:00:00Z',
   },
   {
-    id: 'apt-amanora',
+    id: '78426627-9163-4793-b25e-58e6e3ed009c',
     name: 'Amanora Gateway Towers',
     location: 'Hadapsar, Pune',
     max_houses: 600,
@@ -48,7 +48,7 @@ export const INITIAL_APARTMENTS: Apartment[] = [
     created_at: '2026-01-15T08:00:00Z',
   },
   {
-    id: 'apt-panchshil',
+    id: 'a68d453d-9d4c-47c0-817d-61872043b709',
     name: 'Panchshil Towers',
     location: 'Kharadi, Pune',
     max_houses: 800,
@@ -65,7 +65,7 @@ export const INITIAL_APARTMENTS: Apartment[] = [
     created_at: '2026-01-15T08:00:00Z',
   },
   {
-    id: 'apt-yoo',
+    id: 'ccc136f5-7027-4aa2-a342-06400a77e4a8',
     name: 'Yoo Pune',
     location: 'Hadapsar, Pune',
     max_houses: 250,
@@ -82,7 +82,7 @@ export const INITIAL_APARTMENTS: Apartment[] = [
     created_at: '2026-01-15T08:00:00Z',
   },
   {
-    id: 'apt-glitterati',
+    id: 'cb29f269-e4e1-4197-9a5b-168d81a394d7',
     name: 'Kolte Patil 24K Glitterati',
     location: 'Baner, Pune',
     max_houses: 400,
@@ -99,7 +99,7 @@ export const INITIAL_APARTMENTS: Apartment[] = [
     created_at: '2026-01-15T08:00:00Z',
   },
   {
-    id: 'apt-belmondo',
+    id: '1617b489-6004-4f40-9eb5-2cdd2a108d98',
     name: 'Lodha Belmondo',
     location: 'Gahunje, Pune',
     max_houses: 1000,
@@ -116,7 +116,7 @@ export const INITIAL_APARTMENTS: Apartment[] = [
     created_at: '2026-01-15T08:00:00Z',
   },
   {
-    id: 'apt-marvel',
+    id: '5d0de651-2a44-4cfe-aecc-465bd356025d',
     name: 'Marvel Selva Ridge Estate',
     location: 'Bavdhan, Pune',
     max_houses: 150,
@@ -142,7 +142,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-dev-ariston',
       full_name: 'Ariston Dsouza',
       email: 'ariston.dsouza@neighbournetwork.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'PH-2301',
       role: 'developer',
       admin_title: null,
@@ -154,7 +154,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-dev-allwyn',
       full_name: 'Allwyn Bernard',
       email: 'allwyn.bernard@neighbournetwork.in',
-      apartment_id: 'apt-panchshil',
+      apartment_id: 'a68d453d-9d4c-47c0-817d-61872043b709',
       flat_no: 'PH-3401',
       role: 'developer',
       admin_title: null,
@@ -167,7 +167,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-chair',
       full_name: 'Vikramaditya Singhania',
       email: 'vikram.singhania@trumptowers.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'A-2101',
       role: 'admin',
       admin_title: 'Chairman',
@@ -179,7 +179,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-sec',
       full_name: 'Arundhati Kirloskar',
       email: 'arundhati.k@trumptowers.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'B-1901',
       role: 'admin',
       admin_title: 'Secretary',
@@ -191,7 +191,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-treas',
       full_name: 'Harshvardhan Bajaj',
       email: 'harsh.bajaj@trumptowers.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'A-1701',
       role: 'admin',
       admin_title: 'Treasurer',
@@ -203,7 +203,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-com4',
       full_name: 'Dr. Devika Shirke',
       email: 'devika.shirke@trumptowers.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'B-1501',
       role: 'committee',
       admin_title: null,
@@ -215,7 +215,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-com5',
       full_name: 'Cyrus Poonawalla Jr.',
       email: 'cyrus.p@trumptowers.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'A-2001',
       role: 'committee',
       admin_title: null,
@@ -227,7 +227,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-com6',
       full_name: 'Nandini Garware',
       email: 'nandini.g@trumptowers.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'B-1201',
       role: 'committee',
       admin_title: null,
@@ -239,7 +239,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-com7',
       full_name: 'Siddharth Kalyani',
       email: 'siddharth.k@trumptowers.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'A-1401',
       role: 'committee',
       admin_title: null,
@@ -252,7 +252,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-res1',
       full_name: 'Rohan Malhotra',
       email: 'rohan.malhotra@trumptowers.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'A-1101',
       role: 'resident',
       admin_title: null,
@@ -264,7 +264,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-res2',
       full_name: 'Tara Deshpande',
       email: 'tara.deshpande@trumptowers.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'B-0802',
       role: 'resident',
       admin_title: null,
@@ -277,7 +277,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-pending1',
       full_name: 'Aditya Birla Chavan',
       email: 'aditya.chavan@trumptowers.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'B-2202',
       role: 'resident',
       admin_title: null,
@@ -290,7 +290,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-trump-sec-gate',
       full_name: 'Capt. Rajendra Shinde (Chief Security)',
       email: 'gate.trump@neighbournetwork.in',
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: 'GATE-01',
       role: 'security',
       admin_title: null,
@@ -303,7 +303,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-amanora-chair',
       full_name: 'Sanjay Chordia',
       email: 'sanjay.c@amanora.in',
-      apartment_id: 'apt-amanora',
+      apartment_id: '78426627-9163-4793-b25e-58e6e3ed009c',
       flat_no: 'T1-4201',
       role: 'admin',
       admin_title: 'Chairman',
@@ -315,7 +315,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-panchshil-chair',
       full_name: 'Atul Chordia',
       email: 'atul.c@panchshiltowers.in',
-      apartment_id: 'apt-panchshil',
+      apartment_id: 'a68d453d-9d4c-47c0-817d-61872043b709',
       flat_no: 'A-3101',
       role: 'admin',
       admin_title: 'Chairman',
@@ -327,7 +327,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-yoo-chair',
       full_name: 'Zoya Merchant',
       email: 'zoya.merchant@yoopune.in',
-      apartment_id: 'apt-yoo',
+      apartment_id: 'ccc136f5-7027-4aa2-a342-06400a77e4a8',
       flat_no: 'C-1904',
       role: 'admin',
       admin_title: 'Secretary',
@@ -339,7 +339,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-glitterati-chair',
       full_name: 'Rajesh Patil',
       email: 'rajesh.patil@24kglitterati.in',
-      apartment_id: 'apt-glitterati',
+      apartment_id: 'cb29f269-e4e1-4197-9a5b-168d81a394d7',
       flat_no: 'G-2401',
       role: 'admin',
       admin_title: 'Chairman',
@@ -351,7 +351,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-glitterati-res',
       full_name: 'Karan Johar Kulkarni',
       email: 'karan.k@24kglitterati.in',
-      apartment_id: 'apt-glitterati',
+      apartment_id: 'cb29f269-e4e1-4197-9a5b-168d81a394d7',
       flat_no: 'G-1602',
       role: 'resident',
       admin_title: null,
@@ -363,7 +363,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-belmondo-chair',
       full_name: 'Brigadier Pratap Bhosale',
       email: 'pratap.bhosale@belmondo.in',
-      apartment_id: 'apt-belmondo',
+      apartment_id: '1617b489-6004-4f40-9eb5-2cdd2a108d98',
       flat_no: 'R-2801',
       role: 'admin',
       admin_title: 'Chairman',
@@ -375,7 +375,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-marvel-chair',
       full_name: 'Vishwajeet Jhavar',
       email: 'vishwajeet.j@marvelselva.in',
-      apartment_id: 'apt-marvel',
+      apartment_id: '5d0de651-2a44-4cfe-aecc-465bd356025d',
       flat_no: 'V-1801',
       role: 'admin',
       admin_title: 'Chairman',
@@ -387,7 +387,7 @@ function buildInitialProfiles(): Profile[] {
       id: 'prof-marvel-res',
       full_name: 'Radhika Apte Gokhale',
       email: 'radhika.g@marvelselva.in',
-      apartment_id: 'apt-marvel',
+      apartment_id: '5d0de651-2a44-4cfe-aecc-465bd356025d',
       flat_no: 'V-0401',
       role: 'resident',
       admin_title: null,
@@ -414,7 +414,7 @@ function buildInitialProfiles(): Profile[] {
     const unit = String((i % 4) + 1).padStart(2, '0');
     const flatNo = `${wing}-${floor}${unit}`;
     // Skip if already used in coreProfiles
-    if (coreProfiles.some((p) => p.apartment_id === 'apt-trump' && p.flat_no === flatNo)) {
+    if (coreProfiles.some((p) => p.apartment_id === 'c505cd90-a677-4ad6-ad1f-e6f305afdd14' && p.flat_no === flatNo)) {
       continue;
     }
     const fn = firstNames[i % firstNames.length];
@@ -424,7 +424,7 @@ function buildInitialProfiles(): Profile[] {
       id: `prof-trump-dir-${i}`,
       full_name: `${fn} ${cleanLn}`,
       email: `${fn.toLowerCase()}.${cleanLn.toLowerCase()}${i}@trumptowers.in`,
-      apartment_id: 'apt-trump',
+      apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
       flat_no: flatNo,
       role: 'resident',
       admin_title: null,
@@ -443,7 +443,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
   {
     id: 'post-1',
     author_id: 'prof-trump-chair',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     content:
       'Morning walk through the Kalyani Nagar Biodiversity Sanctuary right beside our estate—captured this majestic Indian peacock fanning its emerald and gold plumage by the cascading forest stream.',
     media_url: 'nature-visual://nature-peacock-sanctuary?seed=108',
@@ -477,7 +477,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
   {
     id: 'post-2',
     author_id: 'prof-dev-allwyn',
-    apartment_id: 'apt-panchshil',
+    apartment_id: 'a68d453d-9d4c-47c0-817d-61872043b709',
     content:
       'Weekend nature trail across the misty Sahyadri hills near Mulshi—sharing a 48-second wildlife clip of a spotted deer stag resting by the pine valley lake at sunrise.',
     media_url: 'nature-visual://wildlife-deer-meadow?seed=214',
@@ -502,7 +502,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
   {
     id: 'post-3',
     author_id: 'prof-belmondo-chair',
-    apartment_id: 'apt-belmondo',
+    apartment_id: '1617b489-6004-4f40-9eb5-2cdd2a108d98',
     content:
       'Evening serenity by the Pawna riverfront lotus lagoon at Lodha Belmondo. A pair of mute swans glided right past the blooming pink water lilies at sunset.',
     media_url: 'nature-visual://nature-swans-lotus?seed=309',
@@ -515,7 +515,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
   {
     id: 'post-4',
     author_id: 'prof-yoo-chair',
-    apartment_id: 'apt-yoo',
+    apartment_id: 'ccc136f5-7027-4aa2-a342-06400a77e4a8',
     content:
       'Our Sunday morning Inter-Society Pet & Nature Walk at Baner-Pashan Biodiversity Meadow! The golden retrievers had the best time chasing monarch butterflies through the wildflowers.',
     media_url: 'nature-visual://animals-golden-meadow?seed=412',
@@ -528,7 +528,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
   {
     id: 'post-5',
     author_id: 'prof-amanora-chair',
-    apartment_id: 'apt-amanora',
+    apartment_id: '78426627-9163-4793-b25e-58e6e3ed009c',
     content:
       'Dawn birdwatching expedition with fellow Pune society nature enthusiasts—greater flamingos wading across the shallow wetland sanctuary at sunrise.',
     media_url: 'nature-visual://wildlife-flamingo-lagoon?seed=528',
@@ -541,7 +541,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
   {
     id: 'post-6',
     author_id: 'prof-glitterati-chair',
-    apartment_id: 'apt-glitterati',
+    apartment_id: 'cb29f269-e4e1-4197-9a5b-168d81a394d7',
     content:
       'Monsoon mist rolling over the Baner hills—our botanical terrace orchids bloomed overnight in full golden-amber clusters.',
     media_url: 'nature-visual://nature-peacock-sanctuary?seed=612',
@@ -554,7 +554,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
   {
     id: 'post-7',
     author_id: 'prof-marvel-chair',
-    apartment_id: 'apt-marvel',
+    apartment_id: '5d0de651-2a44-4cfe-aecc-465bd356025d',
     content:
       'Early morning cycling group from Bavdhan spotted a family of Malabar giant squirrels along the NDA forest canopy reserve.',
     media_url: 'nature-visual://wildlife-deer-meadow?seed=704',
@@ -567,7 +567,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
   {
     id: 'post-8',
     author_id: 'prof-panchshil-chair',
-    apartment_id: 'apt-panchshil',
+    apartment_id: 'a68d453d-9d4c-47c0-817d-61872043b709',
     content:
       'Evening koi pond reflection at Panchshil Towers Kharadi—the water lilies and Japanese maple foliage look serene after the rain.',
     media_url: 'nature-visual://nature-swans-lotus?seed=819',
@@ -580,7 +580,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
   {
     id: 'post-9',
     author_id: 'prof-trump-res1',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     content:
       'Our golden retriever Leo enjoying the sunset breeze on the Kalyani Nagar jogging meadow with neighbouring pets.',
     media_url: 'nature-visual://animals-golden-meadow?seed=905',
@@ -593,7 +593,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
   {
     id: 'post-10',
     author_id: 'prof-glitterati-res',
-    apartment_id: 'apt-glitterati',
+    apartment_id: 'cb29f269-e4e1-4197-9a5b-168d81a394d7',
     content:
       'Post #10 (Oldest Active Post in the 10-Post Feed Stack): Migratory painted storks resting along the Mula-Mutha river sanctuary at dusk.',
     media_url: 'nature-visual://wildlife-flamingo-lagoon?seed=990',
@@ -608,7 +608,7 @@ export const INITIAL_SOCIAL_POSTS: SocialPost[] = [
 export const INITIAL_MARKETPLACE_ITEMS: MarketplaceItem[] = [
   {
     id: 'mkt-1',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     seller_id: 'prof-trump-res1',
     title: 'La Marzocco Linea Micra Espresso Machine (Brushed Brass)',
     description:
@@ -623,7 +623,7 @@ export const INITIAL_MARKETPLACE_ITEMS: MarketplaceItem[] = [
   },
   {
     id: 'mkt-2',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     seller_id: 'prof-trump-sec',
     title: 'Herman Miller Eames Lounge Chair & Ottoman (Santos Palisander)',
     description:
@@ -638,7 +638,7 @@ export const INITIAL_MARKETPLACE_ITEMS: MarketplaceItem[] = [
   },
   {
     id: 'mkt-3',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     seller_id: 'prof-trump-com5',
     title: 'Celestron CGX-L Equatorial 1100 HD Deep-Space Telescope',
     description:
@@ -654,7 +654,7 @@ export const INITIAL_MARKETPLACE_ITEMS: MarketplaceItem[] = [
   },
   {
     id: 'mkt-4',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     seller_id: 'prof-trump-treas',
     title: 'Bang & Olufsen Beosound A9 5th Gen Gold Tone Speaker',
     description:
@@ -671,7 +671,7 @@ export const INITIAL_MARKETPLACE_ITEMS: MarketplaceItem[] = [
   // Isolated to Panchshil Towers
   {
     id: 'mkt-5',
-    apartment_id: 'apt-panchshil',
+    apartment_id: 'a68d453d-9d4c-47c0-817d-61872043b709',
     seller_id: 'prof-dev-allwyn',
     title: 'Devialet Phantom I 108dB Opéra de Paris Edition',
     description: '24-karat moon gold leaf side panels with Devialet Tree stand.',
@@ -688,7 +688,7 @@ export const INITIAL_MARKETPLACE_ITEMS: MarketplaceItem[] = [
 export const INITIAL_POLLS: CommunityPoll[] = [
   {
     id: 'poll-trump-1',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     created_by: 'prof-trump-chair',
     question: 'Resolution 2026/Q4: 23rd-Floor Infinity Pool Geothermal Heating & Cabana Refurbishment',
     description:
@@ -715,7 +715,7 @@ export const INITIAL_POLLS: CommunityPoll[] = [
   },
   {
     id: 'poll-trump-2',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     created_by: 'prof-trump-sec',
     question: 'EV Ultra-Fast 120kW DC Chargers in B1 Valet Bays',
     description:
@@ -737,7 +737,7 @@ export const INITIAL_POLLS: CommunityPoll[] = [
   },
   {
     id: 'poll-panchshil-1',
-    apartment_id: 'apt-panchshil',
+    apartment_id: 'a68d453d-9d4c-47c0-817d-61872043b709',
     created_by: 'prof-dev-allwyn',
     question: 'Panchshil Sky Lounge Cigar & Single Malt Humidor Room Hours',
     description: 'Extending private resident lounge concierge hours on Friday and Saturday nights.',
@@ -753,7 +753,7 @@ export const INITIAL_POLLS: CommunityPoll[] = [
 export const INITIAL_EVENTS: SocialEvent[] = [
   {
     id: 'evt-trump-1',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     created_by: 'prof-trump-sec',
     title: 'Diwali Royal Symphonic Gala & Michelin Chef Tasting Menu',
     description:
@@ -766,7 +766,7 @@ export const INITIAL_EVENTS: SocialEvent[] = [
   },
   {
     id: 'evt-trump-2',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     created_by: 'prof-trump-chair',
     title: 'Sunday Sunrise Sound Bath & Matcha Ceremony',
     description:
@@ -782,7 +782,7 @@ export const INITIAL_EVENTS: SocialEvent[] = [
 export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'ann-trump-1',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     created_by: 'prof-trump-chair',
     title: 'Facade Robotic Glass Polishing Schedule — Tower A & B',
     content:
@@ -792,7 +792,7 @@ export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
   },
   {
     id: 'ann-trump-2',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     created_by: 'prof-trump-treas',
     title: 'Q3 Audited Corpus Statement & Private Elevator Biometric Upgrade',
     content:
@@ -805,7 +805,7 @@ export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
 export const INITIAL_SOS_ALERTS: EmergencySOS[] = [
   {
     id: 'sos-hist-1',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     triggered_by: 'prof-trump-res2',
     triggered_by_name: 'Tara Deshpande',
     flat_no: 'B-0802',
@@ -822,7 +822,7 @@ export const INITIAL_SOS_ALERTS: EmergencySOS[] = [
 export const INITIAL_COMPLAINTS: ComplaintTicket[] = [
   {
     id: 'cmp-1',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     author_id: 'prof-trump-res1',
     flat_no: 'A-1101',
     category: 'Plumbing & Hydro',
@@ -834,7 +834,7 @@ export const INITIAL_COMPLAINTS: ComplaintTicket[] = [
   },
   {
     id: 'cmp-2',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     author_id: 'prof-trump-res2',
     flat_no: 'B-0802',
     category: 'Valet & Parking',
@@ -846,7 +846,7 @@ export const INITIAL_COMPLAINTS: ComplaintTicket[] = [
   },
   {
     id: 'cmp-3',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     author_id: 'prof-trump-com4',
     flat_no: 'B-1501',
     category: 'Concierge & Neighbor Help',
@@ -861,7 +861,7 @@ export const INITIAL_COMPLAINTS: ComplaintTicket[] = [
 export const INITIAL_VISITOR_LOGS: VisitorLog[] = [
   {
     id: 'vis-1',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     resident_id: 'prof-dev-ariston',
     flat_no: 'PH-2301',
     visitor_name: 'Nikhil Kamath',
@@ -878,7 +878,7 @@ export const INITIAL_VISITOR_LOGS: VisitorLog[] = [
   },
   {
     id: 'vis-2',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     resident_id: 'prof-trump-chair',
     flat_no: 'A-2101',
     visitor_name: 'Sotheby’s White-Glove Courier',
@@ -895,7 +895,7 @@ export const INITIAL_VISITOR_LOGS: VisitorLog[] = [
   },
   {
     id: 'vis-3',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     resident_id: 'prof-trump-res1',
     flat_no: 'A-1101',
     visitor_name: 'Nature’s Basket Gourmet Concierge',
@@ -915,7 +915,7 @@ export const INITIAL_VISITOR_LOGS: VisitorLog[] = [
 export const INITIAL_MAINTENANCE_RECORDS: MaintenanceBillRecord[] = [
   {
     id: 'maint-trump-1',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     profile_id: 'prof-dev-ariston',
     flat_no: 'PH-2301',
     member_name: 'Ariston Dsouza',
@@ -931,7 +931,7 @@ export const INITIAL_MAINTENANCE_RECORDS: MaintenanceBillRecord[] = [
   },
   {
     id: 'maint-trump-2',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     profile_id: 'prof-trump-chair',
     flat_no: 'A-2101',
     member_name: 'Vikramaditya Singhania',
@@ -947,7 +947,7 @@ export const INITIAL_MAINTENANCE_RECORDS: MaintenanceBillRecord[] = [
   },
   {
     id: 'maint-trump-3',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     profile_id: 'prof-trump-com4',
     flat_no: 'B-1501',
     member_name: 'Dr. Devika Shirke',
@@ -963,7 +963,7 @@ export const INITIAL_MAINTENANCE_RECORDS: MaintenanceBillRecord[] = [
   },
   {
     id: 'maint-trump-4',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     profile_id: 'prof-trump-res1',
     flat_no: 'A-1101',
     member_name: 'Rohan Malhotra',
@@ -979,7 +979,7 @@ export const INITIAL_MAINTENANCE_RECORDS: MaintenanceBillRecord[] = [
   },
   {
     id: 'maint-trump-5',
-    apartment_id: 'apt-trump',
+    apartment_id: 'c505cd90-a677-4ad6-ad1f-e6f305afdd14',
     profile_id: 'prof-trump-res2',
     flat_no: 'B-0802',
     member_name: 'Tara Deshpande',
@@ -995,7 +995,7 @@ export const INITIAL_MAINTENANCE_RECORDS: MaintenanceBillRecord[] = [
   },
   {
     id: 'maint-panchshil-1',
-    apartment_id: 'apt-panchshil',
+    apartment_id: 'a68d453d-9d4c-47c0-817d-61872043b709',
     profile_id: 'prof-dev-allwyn',
     flat_no: 'PH-3401',
     member_name: 'Allwyn Bernard',
@@ -1011,7 +1011,7 @@ export const INITIAL_MAINTENANCE_RECORDS: MaintenanceBillRecord[] = [
   },
   {
     id: 'maint-amanora-1',
-    apartment_id: 'apt-amanora',
+    apartment_id: '78426627-9163-4793-b25e-58e6e3ed009c',
     profile_id: 'prof-amanora-chair',
     flat_no: 'T1-4201',
     member_name: 'Sanjay Chordia',
@@ -1027,7 +1027,7 @@ export const INITIAL_MAINTENANCE_RECORDS: MaintenanceBillRecord[] = [
   },
   {
     id: 'maint-yoo-1',
-    apartment_id: 'apt-yoo',
+    apartment_id: 'ccc136f5-7027-4aa2-a342-06400a77e4a8',
     profile_id: 'prof-yoo-chair',
     flat_no: 'C-1904',
     member_name: 'Zoya Merchant',
