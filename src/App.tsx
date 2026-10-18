@@ -1313,46 +1313,33 @@ export default function App() {
                     .updatedPosts
                 );
               }}
-              onToggleLike={(postId) => {
-                setSocialPosts((prev) =>
-                  prev.map((p) => {
-                    if (p.id !== postId) return p;
-                    const already = p.liked_by.includes(currentUser.id);
-                    const updatedLikes = already
-                      ? p.liked_by.filter((id) => id !== currentUser.id)
-                      : [...p.liked_by, currentUser.id];
-                    return {
-                      ...p,
-                      liked_by: updatedLikes,
-                      likes_count: updatedLikes.length,
-                    };
-                  })
-                );
+              onToggleLike={async (postId) => {
+                if (!supabase) return;
+                const post = socialPosts.find((p) => p.id === postId);
+                if (!post) return;
+                const already = post.liked_by.includes(currentUser.id);
+                const result = already
+                  ? await supabase.from('social_post_likes').delete().eq('post_id', postId).eq('profile_id', currentUser.id)
+                  : await supabase.from('social_post_likes').insert({ post_id: postId, profile_id: currentUser.id });
+                if (result.error) { console.error('Could not save like:', result.error.message); window.alert('Like could not be saved. Please try again.'); return; }
+                const { count } = await supabase.from('social_post_likes').select('*', { count: 'exact', head: true }).eq('post_id', postId);
+                await supabase.from('social_posts').update({ likes_count: count ?? 0 }).eq('id', postId);
+                setSocialPosts((prev) => prev.map((p) => {
+                  if (p.id !== postId) return p;
+                  const liked_by = already ? p.liked_by.filter((id) => id !== currentUser.id) : [...p.liked_by, currentUser.id];
+                  return { ...p, liked_by, likes_count: count ?? liked_by.length };
+                }));
               }}
-              onAddComment={(postId, content) => {
-                setSocialPosts((prev) =>
-                  prev.map((p) => {
-                    if (p.id !== postId) return p;
-                    return {
-                      ...p,
-                      comments: [
-                        ...p.comments,
-                        {
-                          id: `c-${Date.now()}`,
-                          author_id: currentUser.id,
-                          author_name: currentUser.full_name,
-                          author_role: currentUser.role,
-                          flat_no: currentUser.flat_no,
-                          apartment_name: currentApartment.name,
-                          content,
-                          created_at: new Date().toISOString(),
-                        },
-                      ],
-                    };
-                  })
-                );
+              onAddComment={async (postId, content) => {
+                if (!supabase) return;
+                const { data, error } = await supabase.from('social_comments').insert({ post_id: postId, author_id: currentUser.id, content }).select('*').single();
+                if (error || !data) { console.error('Could not save comment:', error?.message); window.alert('Comment could not be saved. Please try again.'); return; }
+                setSocialPosts((prev) => prev.map((p) => p.id !== postId ? p : ({ ...p, comments: [...p.comments, { id: data.id, author_id: currentUser.id, author_name: currentUser.full_name, author_role: currentUser.role, flat_no: currentUser.flat_no, apartment_name: currentApartment.name, content: data.content, created_at: data.created_at }] })));
               }}
-              onDeletePost={(postId) => {
+              onDeletePost={async (postId) => {
+                if (!supabase) return;
+                const { error } = await supabase.from('social_posts').delete().eq('id', postId);
+                if (error) { console.error('Could not delete post:', error.message); window.alert('Post could not be deleted. Only the author can delete their post.'); return; }
                 setSocialPosts((prev) => prev.filter((p) => p.id !== postId));
               }}
               onIssueWarning={(authorId) => {
