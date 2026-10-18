@@ -69,6 +69,8 @@ import {
   Clock,
   ScrollText,
   X,
+  Menu,
+  LogOut,
 } from 'lucide-react';
 
 type ActiveModule =
@@ -181,6 +183,7 @@ export default function App() {
 
   const [activeModule, setActiveModule] = useState<ActiveModule>('feed');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [showQuickSosModal, setShowQuickSosModal] = useState(false);
   const [quickSosType, setQuickSosType] =
@@ -471,7 +474,7 @@ export default function App() {
         <header className="flex items-center justify-between gap-4 px-6 py-3.5 border-b border-[#D4AF37]/25 bg-[linear-gradient(90deg,rgba(7,2,14,0.94)_0%,rgba(46,16,101,0.88)_50%,rgba(7,2,14,0.94)_100%)] backdrop-blur-md sticky top-0 z-40">
           <div className="flex items-center gap-3 text-xl font-display font-bold tracking-wider text-[#D4AF37]">
             <LuxuryCrestLogo className="w-9 h-9 shrink-0" />
-            <span>Neighbour Network</span>
+            <span className="truncate">Neighbour Network</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -808,7 +811,8 @@ export default function App() {
 
       {/* 3-Zone Top Navigation Header */}
       <header className="w-full border-b border-[#D4AF37]/25 bg-[linear-gradient(90deg,rgba(7,2,14,0.94)_0%,rgba(46,16,101,0.88)_50%,rgba(7,2,14,0.94)_100%)] backdrop-blur-md sticky top-0 z-40">
-        <div className="w-full max-w-[1440px] mx-auto flex items-center justify-between gap-2 px-4 sm:px-6 py-3">
+        <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-2 px-3 sm:px-6 py-2.5">
+          <button type="button" aria-label="Open navigation menu" onClick={() => setMobileMenuOpen(true)} className="lg:hidden inline-flex items-center justify-center rounded-lg border border-white/15 p-2 text-[#D4AF37] shrink-0"><Menu className="w-5 h-5" /></button>
           {/* Zone 1: Brand Crest Logo + Neighbour Network */}
           <a
             href="#top"
@@ -816,7 +820,7 @@ export default function App() {
               e.preventDefault();
               if (!isGateSecurityOnly) setActiveModule('feed');
             }}
-            className="flex items-center gap-2 text-base font-display font-bold tracking-wider text-[#D4AF37] whitespace-nowrap shrink-0"
+            className="flex min-w-0 items-center gap-2 text-sm sm:text-lg font-display font-bold tracking-wider text-[#D4AF37] shrink"
           >
             <LuxuryCrestLogo className="w-7 h-7 shrink-0" />
             <span>Neighbour Network</span>
@@ -848,7 +852,7 @@ export default function App() {
           </nav>
 
           {/* Zone 3: Small Emergency SOS Button + Notification Button + Guidelines Button + Switch Account */}
-          <div className="relative flex items-center gap-1.5 shrink-0">
+          <div className="relative flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* Small Emergency SOS Button (Left of Notification & Switch Account) */}
             <button
               type="button"
@@ -903,9 +907,11 @@ export default function App() {
             <button
               type="button"
               onClick={() => setCurrentUserId(null)}
-              className="px-2.5 py-1.5 text-[11px] font-semibold text-[#0B0C10] bg-[#D4AF37] rounded-lg hover:bg-[#e3be42] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-2 py-1.5 sm:px-2.5 text-[11px] font-semibold text-[#0B0C10] bg-[#D4AF37] rounded-lg hover:bg-[#e3be42] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              aria-label="Switch account or sign out"
+              title="Switch Account / Sign Out"
             >
-              Switch Account / Sign Out
+              <span className="hidden md:inline">Switch Account / Sign Out</span><LogOut className="w-4 h-4 md:hidden" />
             </button>
 
           {/* Quick Emergency SOS Popover Modal */}
@@ -1067,9 +1073,10 @@ export default function App() {
       </header>
 
       {/* Main Workspace Container (1440px Desktop Layout with Sidebar + Content Viewport) */}
-      <div className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="flex-1 w-full max-w-7xl mx-auto min-w-0 overflow-x-hidden px-3 sm:px-6 py-4 sm:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         {/* Left Luxury Resident Identity & Society Context Sidebar */}
-        <aside className="lg:col-span-3 space-y-5">
+        {mobileMenuOpen && <button type="button" aria-label="Close navigation drawer" onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 z-40 bg-black/65 backdrop-blur-sm lg:hidden" />}
+        <aside className={`fixed inset-y-0 left-0 z-50 w-[min(88vw,360px)] overflow-y-auto bg-[#08040F] p-3 pt-16 shadow-2xl transition-transform duration-300 lg:static lg:z-auto lg:w-auto lg:overflow-visible lg:bg-transparent lg:p-0 lg:pt-0 lg:shadow-none lg:translate-x-0 lg:col-span-3 space-y-5 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
           {/* Active Profile Card with Glowing Role Ring */}
           <div className="bg-[#141821] border border-[#D4AF37]/35 rounded-xl p-5 space-y-4">
             <div className="flex items-center gap-3.5">
@@ -1197,7 +1204,7 @@ export default function App() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setActiveModule(item.id)}
+                  onClick={() => { setActiveModule(item.id); setMobileMenuOpen(false); }}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                     isActive
                       ? 'bg-[#D4AF37] text-[#0B0C10] font-semibold'
@@ -1222,7 +1229,7 @@ export default function App() {
         </aside>
 
         {/* Right Primary Module Viewport */}
-        <main className="lg:col-span-9 min-w-0">
+        <main className="w-full min-w-0 max-w-full overflow-x-hidden lg:col-span-9">
           {activeModule === 'feed' && (
             <GlobalSocialFeed
               posts={socialPosts}
