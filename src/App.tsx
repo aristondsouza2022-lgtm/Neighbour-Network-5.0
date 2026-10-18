@@ -46,6 +46,7 @@ import {
 } from './utils/communityRules';
 import { LuxuryCrestLogo, RoleAvatar } from './components/LuxuryCrest';
 import { AuthPortal } from './components/AuthPortal';
+import { supabase } from './lib/supabase';
 import { GlobalSocialFeed } from './components/GlobalSocialFeed';
 import { ApartmentMarketplace } from './components/ApartmentMarketplace';
 import { MaintenanceAndBills } from './components/MaintenanceAndBills';
@@ -86,42 +87,43 @@ type ActiveModule =
 export default function App() {
   // Core Multi-Tenant State (with persistent database storage for registered member emails & roles)
   const [apartments, setApartments] = useState<Apartment[]>(INITIAL_APARTMENTS);
-  const [profiles, setProfiles] = useState<Profile[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = window.localStorage.getItem('neighbour_network_profiles_v3');
-        if (saved) {
-          const parsed: Profile[] = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const existingIds = new Set(parsed.map((p) => p.id));
-            const missingSeeds = INITIAL_PROFILES.filter(
-              (seed) => !existingIds.has(seed.id)
-            );
-            return [...parsed, ...missingSeeds];
-          }
-        }
-      } catch {
-        // Fallback to INITIAL_PROFILES
-      }
-    }
-    return INITIAL_PROFILES;
-  });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem(
-          'neighbour_network_profiles_v3',
-          JSON.stringify(profiles)
-        );
-      } catch {
-        // Ignore storage quota issues
-      }
-    }
-  }, [profiles]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
   const [socialPosts, setSocialPosts] =
     useState<SocialPost[]>(INITIAL_SOCIAL_POSTS);
+
+  // Load the shared feed from Supabase once a real member session is active.
+  useEffect(() => {
+    if (!supabase || !currentUserId) return;
+    let active = true;
+    const loadSharedFeed = async () => {
+      const { data, error } = await supabase
+        .from('social_posts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(MAX_SOCIAL_FEED_POSTS);
+      if (error) {
+        console.error('Unable to load shared feed:', error.message);
+        return;
+      }
+      if (!active) return;
+      setSocialPosts((data ?? []).map((row) => ({
+        id: row.id,
+        author_id: row.author_id,
+        apartment_id: row.apartment_id,
+        content: row.content ?? '',
+        media_url: row.media_url,
+        media_type: row.media_type,
+        video_duration_sec: row.video_duration_sec ?? undefined,
+        likes_count: row.likes_count ?? 0,
+        liked_by: [],
+        comments: [],
+        created_at: row.created_at,
+      })) as SocialPost[]);
+    };
+    void loadSharedFeed();
+    return () => { active = false; };
+  }, [currentUserId]);
   const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>(
     INITIAL_MARKETPLACE_ITEMS
   );
@@ -170,16 +172,42 @@ export default function App() {
     }
   }, [maintenanceRecords]);
 
-  // Default to Sign-In page first; support ?autostart=1 query param for automated bypass
-  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('autostart') === '1') {
-        return 'prof-dev-ariston';
+  // Never bypass authentication. Restore only a real Supabase session.
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const restoreSession = async () => {
+      if (!supabase) {
+        if (active) setAuthLoading(false);
+        return;
       }
-    }
-    return null;
-  });
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        const { data: profile, error } = await supabase
+          .from('profiles').select('*').eq('id', session.user.id).single();
+        if (error || !profile) {
+          await supabase.auth.signOut();
+          return;
+        }
+        const { data: memberProfiles } = await supabase.from('profiles').select('*');
+        if (!active) return;
+        setProfiles((memberProfiles ?? [profile]) as Profile[]);
+        setCurrentUserId(profile.id);
+      } catch (error) {
+        console.error('Unable to restore Supabase session:', error);
+      } finally {
+        if (active) setAuthLoading(false);
+      }
+    };
+    void restoreSession();
+    const { data: authListener } = supabase?.auth.onAuthStateChange(() => {
+      // Session restoration above and explicit login handlers own profile loading.
+    }) ?? { data: { subscription: { unsubscribe: () => undefined } } };
+    return () => { active = false; authListener.subscription.unsubscribe(); };
+  }, []);
 
   const [activeModule, setActiveModule] = useState<ActiveModule>('feed');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -273,37 +301,30 @@ export default function App() {
   }, [currentUser, activeModule]);
 
   // Handlers
-  const handleSignInProfile = (profile: Profile) => {
+  const handleSignInProfile = async (profile: Profile) => {
+    setProfiles((prev) => [profile, ...prev.filter((p) => p.id !== profile.id)]);
+    if (supabase) {
+      const { data } = await supabase.from('profiles').select('*');
+      if (data) setProfiles(data as Profile[]);
+    }
     setCurrentUserId(profile.id);
     setShowNotifications(false);
     setShowQuickSosModal(false);
-    if (profile.role === 'security') {
-      setActiveModule('gate-pass');
-    } else {
-      setActiveModule('feed');
-    }
+    setActiveModule(profile.role === 'security' ? 'gate-pass' : 'feed');
   };
 
-  const handleRegisterProfile = (
+  const handleRegisterProfile = async (
     newOrUpdatedProfile: Profile,
     stayOnLoginStep = false
   ) => {
-    setProfiles((prev) => {
-      const exists = prev.some((p) => p.id === newOrUpdatedProfile.id);
-      if (exists) {
-        return prev.map((p) =>
-          p.id === newOrUpdatedProfile.id ? newOrUpdatedProfile : p
-        );
-      }
-      return [newOrUpdatedProfile, ...prev];
-    });
+    setProfiles((prev) => [newOrUpdatedProfile, ...prev.filter((p) => p.id !== newOrUpdatedProfile.id)]);
+    if (supabase) {
+      const { data } = await supabase.from('profiles').select('*');
+      if (data) setProfiles(data as Profile[]);
+    }
     if (!stayOnLoginStep) {
       setCurrentUserId(newOrUpdatedProfile.id);
-      if (newOrUpdatedProfile.role === 'security') {
-        setActiveModule('gate-pass');
-      } else {
-        setActiveModule('feed');
-      }
+      setActiveModule(newOrUpdatedProfile.role === 'security' ? 'gate-pass' : 'feed');
     }
   };
 
@@ -318,6 +339,10 @@ export default function App() {
       )
     );
   };
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#050507] text-[#D4AF37]">Checking your secure session…</div>;
+  }
 
   if (!currentUser) {
     return (
@@ -1236,19 +1261,45 @@ export default function App() {
               profiles={profiles}
               apartments={apartments}
               currentUser={currentUser}
-              onCreatePost={(newPost) => {
+              onCreatePost={async (newPost) => {
+                if (!supabase) {
+                  console.error('Supabase is not configured; post was not saved.');
+                  return;
+                }
+                const mediaUrl = newPost.media_url ?? null;
+                const isPersistableMedia = Boolean(mediaUrl && /^https?:\\/\\//i.test(mediaUrl));
+                const { data, error } = await supabase
+                  .from('social_posts')
+                  .insert({
+                    author_id: currentUser.id,
+                    apartment_id: currentUser.apartment_id,
+                    content: newPost.content,
+                    media_url: isPersistableMedia ? mediaUrl : null,
+                    media_type: isPersistableMedia ? newPost.media_type : null,
+                    video_duration_sec: newPost.video_duration_sec ?? null,
+                  })
+                  .select('*')
+                  .single();
+                if (error || !data) {
+                  console.error('Unable to save post:', error?.message);
+                  return;
+                }
                 const post: SocialPost = {
-                  ...newPost,
-                  id: `post-${Date.now()}`,
-                  likes_count: 0,
+                  id: data.id,
+                  author_id: data.author_id,
+                  apartment_id: data.apartment_id,
+                  content: data.content ?? '',
+                  media_url: data.media_url,
+                  media_type: data.media_type,
+                  video_duration_sec: data.video_duration_sec ?? undefined,
+                  likes_count: data.likes_count ?? 0,
                   liked_by: [],
                   comments: [],
-                  created_at: new Date().toISOString(),
+                  created_at: data.created_at,
                 };
-                setSocialPosts(
-                  (prev) =>
-                    addSocialPostWithLimit(prev, post, MAX_SOCIAL_FEED_POSTS)
-                      .updatedPosts
+                setSocialPosts((prev) =>
+                  addSocialPostWithLimit(prev.filter((p) => p.id !== post.id), post, MAX_SOCIAL_FEED_POSTS)
+                    .updatedPosts
                 );
               }}
               onToggleLike={(postId) => {
