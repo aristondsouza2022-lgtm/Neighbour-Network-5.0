@@ -46,6 +46,7 @@ import {
 } from './utils/communityRules';
 import { LuxuryCrestLogo, RoleAvatar } from './components/LuxuryCrest';
 import { AuthPortal } from './components/AuthPortal';
+import { supabase } from './lib/supabase';
 import { GlobalSocialFeed } from './components/GlobalSocialFeed';
 import { ApartmentMarketplace } from './components/ApartmentMarketplace';
 import { MaintenanceAndBills } from './components/MaintenanceAndBills';
@@ -86,39 +87,7 @@ type ActiveModule =
 export default function App() {
   // Core Multi-Tenant State (with persistent database storage for registered member emails & roles)
   const [apartments, setApartments] = useState<Apartment[]>(INITIAL_APARTMENTS);
-  const [profiles, setProfiles] = useState<Profile[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = window.localStorage.getItem('neighbour_network_profiles_v3');
-        if (saved) {
-          const parsed: Profile[] = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const existingIds = new Set(parsed.map((p) => p.id));
-            const missingSeeds = INITIAL_PROFILES.filter(
-              (seed) => !existingIds.has(seed.id)
-            );
-            return [...parsed, ...missingSeeds];
-          }
-        }
-      } catch {
-        // Fallback to INITIAL_PROFILES
-      }
-    }
-    return INITIAL_PROFILES;
-  });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem(
-          'neighbour_network_profiles_v3',
-          JSON.stringify(profiles)
-        );
-      } catch {
-        // Ignore storage quota issues
-      }
-    }
-  }, [profiles]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
   const [socialPosts, setSocialPosts] =
     useState<SocialPost[]>(INITIAL_SOCIAL_POSTS);
@@ -170,16 +139,42 @@ export default function App() {
     }
   }, [maintenanceRecords]);
 
-  // Default to Sign-In page first; support ?autostart=1 query param for automated bypass
-  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('autostart') === '1') {
-        return 'prof-dev-ariston';
+  // Never bypass authentication. Restore only a real Supabase session.
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const restoreSession = async () => {
+      if (!supabase) {
+        if (active) setAuthLoading(false);
+        return;
       }
-    }
-    return null;
-  });
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        const { data: profile, error } = await supabase
+          .from('profiles').select('*').eq('id', session.user.id).single();
+        if (error || !profile) {
+          await supabase.auth.signOut();
+          return;
+        }
+        const { data: memberProfiles } = await supabase.from('profiles').select('*');
+        if (!active) return;
+        setProfiles((memberProfiles ?? [profile]) as Profile[]);
+        setCurrentUserId(profile.id);
+      } catch (error) {
+        console.error('Unable to restore Supabase session:', error);
+      } finally {
+        if (active) setAuthLoading(false);
+      }
+    };
+    void restoreSession();
+    const { data: authListener } = supabase?.auth.onAuthStateChange(() => {
+      // Session restoration above and explicit login handlers own profile loading.
+    }) ?? { data: { subscription: { unsubscribe: () => undefined } } };
+    return () => { active = false; authListener.subscription.unsubscribe(); };
+  }, []);
 
   const [activeModule, setActiveModule] = useState<ActiveModule>('feed');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -273,37 +268,30 @@ export default function App() {
   }, [currentUser, activeModule]);
 
   // Handlers
-  const handleSignInProfile = (profile: Profile) => {
+  const handleSignInProfile = async (profile: Profile) => {
+    setProfiles((prev) => [profile, ...prev.filter((p) => p.id !== profile.id)]);
+    if (supabase) {
+      const { data } = await supabase.from('profiles').select('*');
+      if (data) setProfiles(data as Profile[]);
+    }
     setCurrentUserId(profile.id);
     setShowNotifications(false);
     setShowQuickSosModal(false);
-    if (profile.role === 'security') {
-      setActiveModule('gate-pass');
-    } else {
-      setActiveModule('feed');
-    }
+    setActiveModule(profile.role === 'security' ? 'gate-pass' : 'feed');
   };
 
-  const handleRegisterProfile = (
+  const handleRegisterProfile = async (
     newOrUpdatedProfile: Profile,
     stayOnLoginStep = false
   ) => {
-    setProfiles((prev) => {
-      const exists = prev.some((p) => p.id === newOrUpdatedProfile.id);
-      if (exists) {
-        return prev.map((p) =>
-          p.id === newOrUpdatedProfile.id ? newOrUpdatedProfile : p
-        );
-      }
-      return [newOrUpdatedProfile, ...prev];
-    });
+    setProfiles((prev) => [newOrUpdatedProfile, ...prev.filter((p) => p.id !== newOrUpdatedProfile.id)]);
+    if (supabase) {
+      const { data } = await supabase.from('profiles').select('*');
+      if (data) setProfiles(data as Profile[]);
+    }
     if (!stayOnLoginStep) {
       setCurrentUserId(newOrUpdatedProfile.id);
-      if (newOrUpdatedProfile.role === 'security') {
-        setActiveModule('gate-pass');
-      } else {
-        setActiveModule('feed');
-      }
+      setActiveModule(newOrUpdatedProfile.role === 'security' ? 'gate-pass' : 'feed');
     }
   };
 
@@ -318,6 +306,10 @@ export default function App() {
       )
     );
   };
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#050507] text-[#D4AF37]">Checking your secure session…</div>;
+  }
 
   if (!currentUser) {
     return (
