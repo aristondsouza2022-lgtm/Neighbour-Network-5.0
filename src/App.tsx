@@ -103,7 +103,7 @@ export default function App() {
       const postIds = (data ?? []).map((row) => row.id);
       const [likeResult, commentResult] = postIds.length ? await Promise.all([
         supabase.from('social_post_likes').select('post_id,profile_id').in('post_id', postIds),
-        supabase.from('social_comments').select('id,post_id,author_id,content,created_at,profiles:author_id(full_name,role,flat_no,apartment_id)').in('post_id', postIds).order('created_at', { ascending: true }),
+        supabase.from('social_comments').select('id,post_id,author_id,content,created_at,profiles!social_comments_author_id_fkey(full_name,role,flat_no,apartment_id)').in('post_id', postIds).order('created_at', { ascending: true }),
       ]) : [{ data: [], error: null } as any, { data: [], error: null } as any];
       if (!active) return;
       if (likeResult.error) console.error('Unable to load post likes:', likeResult.error.message);
