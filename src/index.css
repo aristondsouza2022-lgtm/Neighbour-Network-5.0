@@ -7,6 +7,12 @@
     --font-mono: 'JetBrains Mono', monospace;
   }
 
+  html, body, #root {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
   body {
     font-family: var(--font-sans);
     background: linear-gradient(135deg, #05010A 0%, #3B0764 25%, #090212 50%, #581C87 76%, #040108 100%);
@@ -121,4 +127,12 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(212, 175, 55, 0.5);
+}
+
+
+/* Responsive safety rails for narrow mobile and tablet viewports */
+@media (max-width: 1023px) {
+  *, *::before, *::after { min-width: 0; }
+  img, video, canvas, svg { max-width: 100%; }
+  body { overflow-x: hidden; }
 }
