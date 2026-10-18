@@ -100,8 +100,27 @@ export default function App() {
     const loadSharedFeed = async () => {
       const { data, error } = await supabase.from('social_posts').select('*').order('created_at', { ascending: false }).limit(MAX_SOCIAL_FEED_POSTS);
       if (error) { console.error('Unable to load shared feed:', error.message); return; }
+      const postIds = (data ?? []).map((row) => row.id);
+      const [likeResult, commentResult] = postIds.length ? await Promise.all([
+        supabase.from('social_post_likes').select('post_id,profile_id').in('post_id', postIds),
+        supabase.from('social_comments').select('id,post_id,author_id,content,created_at,profiles:author_id(full_name,role,flat_no,apartment_id)').in('post_id', postIds).order('created_at', { ascending: true }),
+      ]) : [{ data: [], error: null } as any, { data: [], error: null } as any];
       if (!active) return;
-      setSocialPosts((data ?? []).map((row) => ({ id: row.id, author_id: row.author_id, apartment_id: row.apartment_id, content: row.content ?? '', media_url: row.media_url, media_type: row.media_type, video_duration_sec: row.video_duration_sec ?? undefined, likes_count: row.likes_count ?? 0, liked_by: [], comments: [], created_at: row.created_at })) as SocialPost[]);
+      if (likeResult.error) console.error('Unable to load post likes:', likeResult.error.message);
+      if (commentResult.error) console.error('Unable to load post comments:', commentResult.error.message);
+      setSocialPosts((data ?? []).map((row) => ({
+        id: row.id, author_id: row.author_id, apartment_id: row.apartment_id, content: row.content ?? '',
+        media_url: row.media_url, media_type: row.media_type, video_duration_sec: row.video_duration_sec ?? undefined,
+        likes_count: row.likes_count ?? 0,
+        liked_by: (likeResult.data ?? []).filter((like: any) => like.post_id === row.id).map((like: any) => like.profile_id),
+        comments: (commentResult.data ?? []).filter((comment: any) => comment.post_id === row.id).map((comment: any) => ({
+          id: comment.id, author_id: comment.author_id, author_name: comment.profiles?.full_name ?? 'Resident',
+          author_role: comment.profiles?.role ?? 'resident', flat_no: comment.profiles?.flat_no ?? '',
+          apartment_name: apartments.find((apt) => apt.id === comment.profiles?.apartment_id)?.name ?? '',
+          content: comment.content, created_at: comment.created_at,
+        })),
+        created_at: row.created_at,
+      })) as SocialPost[]);
     };
     const loadApartmentData = async () => {
       const [market, pollRows, optionsRows, voteRows] = await Promise.all([
