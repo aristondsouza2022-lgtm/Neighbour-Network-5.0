@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Apartment, Profile } from '../types/community';
+import { supabase } from '../lib/supabase';
 import {
   resolveRegistrationRole,
   validateFlatUniqueness,
@@ -77,7 +78,7 @@ export function AuthPortal({
     );
   }, [matchedSavedProfile, apartments]);
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -85,120 +86,85 @@ export function AuthPortal({
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedName = fullName.trim();
     const trimmedFlat = flatNo.trim().toUpperCase();
-
     if (!trimmedEmail || !password.trim()) {
-      setErrorMessage(
-        'Please enter both your email address and security passkey.'
-      );
+      setErrorMessage('Please enter both your email address and security passkey.');
+      return;
+    }
+    if (!supabase) {
+      setErrorMessage('Database connection is not configured. Please contact the site administrator.');
       return;
     }
 
-    // =========================================================================
-    // TAB 2: LOGIN (For Returning Members whose email is saved in the database)
-    // =========================================================================
-    if (mode === 'login') {
-      const existingByEmail = profiles.find(
-        (p) => p.email.toLowerCase() === trimmedEmail
-      );
-
-      if (!existingByEmail) {
-        setErrorMessage(
-          `No account with email "${trimmedEmail}" was found in the database. Please use the "Sign In" tab first to register your residence.`
-        );
+    try {
+      if (mode === 'login') {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        });
+        if (error) throw error;
+        if (!data.session || !data.user) {
+          setErrorMessage('Login could not be verified. Please try again.');
+          return;
+        }
+        const { data: row, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+        if (profileError || !row) {
+          await supabase.auth.signOut();
+          throw new Error('Your account profile is not ready yet. Confirm your email, then try again. If this continues, contact the administrator.');
+        }
+        onSignInProfile(row as Profile);
         return;
       }
 
-      // If the returning member also supplied the secret Developer referral code during Login, elevate them
-      if (referralCode.trim() === SECRET_DEVELOPER_REFERRAL_CODE) {
-        const elevated: Profile = {
-          ...existingByEmail,
-          role: 'developer',
-          is_verified: true,
-        };
-        onRegisterProfile(elevated, false);
+      if (!trimmedName) {
+        setErrorMessage('Please enter your Full Name (Family Head).');
+        return;
+      }
+      if (!trimmedFlat) {
+        setErrorMessage('Please enter your Flat or Penthouse number.');
+        return;
+      }
+      if (!selectedApartmentId) {
+        setErrorMessage('Please select your apartment.');
         return;
       }
 
-      // If the returning member shifted/changed their apartment during Login (e.g., Trump Towers -> Yoo Pune Hadapsar)
-      if (
-        loginTargetApartmentId &&
-        loginTargetApartmentId !== existingByEmail.apartment_id
-      ) {
-        const transferred = transferMemberApartment(
-          existingByEmail,
-          loginTargetApartmentId,
-          loginTransferFlatNo
-        );
-        onRegisterProfile(transferred, false);
+      const { data, error } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password,
+        options: {
+          data: {
+            full_name: trimmedName,
+            apartment_id: selectedApartmentId,
+            flat_no: trimmedFlat,
+          },
+        },
+      });
+      if (error) throw error;
+
+      if (!data.session || !data.user) {
+        setMode('login');
+        setSuccessMessage('Check your email and confirm your account before logging in.');
         return;
       }
 
-      onSignInProfile(existingByEmail);
-      return;
+      const { data: row, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+      if (profileError || !row) {
+        await supabase.auth.signOut();
+        throw new Error('Your account was created, but the resident profile could not be loaded. Please contact the administrator.');
+      }
+      onRegisterProfile(row as Profile, false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Authentication failed. Please try again.';
+      setErrorMessage(message);
     }
-
-    // =========================================================================
-    // TAB 1: SIGN IN (For New Members registering their residence into the DB)
-    // =========================================================================
-    if (!trimmedName) {
-      setErrorMessage(
-        'Please enter your Full Name (Family Head) to save your account.'
-      );
-      return;
-    }
-
-    if (!trimmedFlat) {
-      setErrorMessage('Please enter your Flat or Penthouse number.');
-      return;
-    }
-
-    const alreadySaved = profiles.find(
-      (p) => p.email.toLowerCase() === trimmedEmail
-    );
-    if (alreadySaved) {
-      setMode('login');
-      setSuccessMessage(
-        `Your email (${trimmedEmail}) is already saved in the database! Click "Login to Member Portal" below to continue.`
-      );
-      return;
-    }
-
-    // Check 1 Account = 1 Family Head per Flat uniqueness against user-registered accounts
-    const userRegisteredProfiles = profiles.filter((p) =>
-      p.id.startsWith('prof-user-')
-    );
-    const uniqueness = validateFlatUniqueness(
-      userRegisteredProfiles,
-      selectedApartmentId,
-      trimmedFlat
-    );
-    if (!uniqueness.valid) {
-      setErrorMessage(uniqueness.error || 'Flat already registered.');
-      return;
-    }
-
-    // Never ask for role: Always 'resident' (Blue Ring) by default unless secret Developer referral key is entered
-    const assignedRole = resolveRegistrationRole(referralCode, 'resident');
-
-    const created: Profile = {
-      id: `prof-user-${Date.now()}`,
-      full_name: trimmedName,
-      email: trimmedEmail,
-      apartment_id: selectedApartmentId,
-      flat_no: trimmedFlat,
-      role: assignedRole,
-      admin_title: null,
-      is_verified: assignedRole === 'developer',
-      warnings_count: 0,
-      created_at: new Date().toISOString(),
-    };
-
-    // Save in database and transition to Login tab (Step 1 Sign In -> Step 2 Login -> Step 3 Member Profile)
-    onRegisterProfile(created, true);
-    setMode('login');
-    setSuccessMessage(
-      `Account for ${created.full_name} (${created.email}) saved in database with default Resident (Blue Ring) role. Click "Login to Member Portal" below to enter.`
-    );
   };
 
   // Non-clickable Role Ring Governance Legend
