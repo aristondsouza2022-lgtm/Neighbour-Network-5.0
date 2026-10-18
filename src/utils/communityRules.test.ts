@@ -18,12 +18,16 @@ import {
   generateSixDigitPassCode,
   calculateStayDurationMinutes,
   getMarketplaceStatusBadge,
+  buildSocietyMaintenanceLedger,
+  submitMaintenanceReceipt,
+  getSocietyMaintenanceSummary,
 } from './communityRules.ts';
 import type {
   Profile,
   EmergencySOS,
   CommunityPoll,
   SocialPost,
+  MaintenanceBillRecord,
 } from '../types/community.ts';
 
 const mockProfiles: Profile[] = [
@@ -344,3 +348,77 @@ test('Marketplace dynamic status badges match specification', () => {
   assert.equal(getMarketplaceStatusBadge('occupied').label, 'Occupied');
   assert.equal(getMarketplaceStatusBadge('purchased').label, 'Purchased');
 });
+
+test('Society Maintenance & Bills ledger shows members with uploaded receipt as paid and others as pending', () => {
+  const initialRecords: MaintenanceBillRecord[] = [
+    {
+      id: 'maint-1',
+      apartment_id: 'apt-trump',
+      profile_id: 'p-1',
+      flat_no: 'A-2101',
+      member_name: 'Vikramaditya Singhania',
+      billing_period: 'October 2026',
+      amount: 18500,
+      status: 'paid',
+      receipt_image_url: 'receipt-visual://trump-a2101-oct2026',
+      receipt_file_name: 'trump_a2101_upi_receipt.png',
+      payment_method: 'UPI / IMPS Screenshot',
+      transaction_ref: 'UTR62940182',
+      paid_at: '2026-10-05T10:15:00Z',
+      updated_at: '2026-10-05T10:15:00Z',
+    },
+  ];
+
+  const ledger = buildSocietyMaintenanceLedger(
+    mockProfiles,
+    initialRecords,
+    'apt-trump',
+    18500,
+    'October 2026'
+  );
+
+  assert.equal(ledger.length, 5);
+  const p1Entry = ledger.find((e) => e.profile.id === 'p-1');
+  const p5Entry = ledger.find((e) => e.profile.id === 'p-5');
+
+  assert.equal(p1Entry?.status, 'paid');
+  assert.equal(p1Entry?.receipt_image_url, 'receipt-visual://trump-a2101-oct2026');
+  assert.equal(p5Entry?.status, 'pending');
+  assert.equal(p5Entry?.receipt_image_url, null);
+
+  const summaryBefore = getSocietyMaintenanceSummary(ledger);
+  assert.equal(summaryBefore.totalMembers, 5);
+  assert.equal(summaryBefore.paidCount, 1);
+  assert.equal(summaryBefore.pendingCount, 4);
+
+  // Uploading a maintenance receipt screenshot transitions pending member p-5 to paid
+  const uploadResult = submitMaintenanceReceipt(initialRecords, {
+    apartment_id: 'apt-trump',
+    profile_id: 'p-5',
+    flat_no: 'B-0501',
+    member_name: 'Kabir Malhotra',
+    amount: 18500,
+    billing_period: 'October 2026',
+    receipt_image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    receipt_file_name: 'kabir_b0501_receipt.png',
+    payment_method: 'UPI / IMPS Screenshot',
+    transaction_ref: 'UTR99887766',
+  });
+
+  assert.equal(uploadResult.error, undefined);
+  const updatedLedger = buildSocietyMaintenanceLedger(
+    mockProfiles,
+    uploadResult.updatedRecords,
+    'apt-trump',
+    18500,
+    'October 2026'
+  );
+  const updatedP5 = updatedLedger.find((e) => e.profile.id === 'p-5');
+  assert.equal(updatedP5?.status, 'paid');
+  assert.ok(updatedP5?.receipt_image_url);
+
+  const summaryAfter = getSocietyMaintenanceSummary(updatedLedger);
+  assert.equal(summaryAfter.paidCount, 2);
+  assert.equal(summaryAfter.pendingCount, 3);
+});
+

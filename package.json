@@ -4,9 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev": "tsx backend/server.ts",
     "build": "vite build",
+    "start": "tsx backend/server.ts",
     "preview": "vite preview",
+    "test": "node --test frontend/src/utils/communityRules.test.ts backend/src/utils/communityRules.test.ts",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },

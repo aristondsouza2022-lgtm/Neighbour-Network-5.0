@@ -3,9 +3,11 @@ import type {
   Apartment,
   CommunityPoll,
   EmergencySOS,
+  MaintenanceBillRecord,
   MarketplaceItem,
   Profile,
   SocialPost,
+  SocietyMemberMaintenanceEntry,
   UserRole,
   VisitorLog,
   ComplaintTicket,
@@ -427,3 +429,177 @@ export function getMarketplaceStatusBadge(status: MarketplaceItem['status']): {
       return { label: 'Available', isAvailable: true };
   }
 }
+
+export const DEFAULT_MONTHLY_MAINTENANCE_AMOUNT = 18500;
+export const DEFAULT_BILLING_PERIOD = 'October 2026';
+
+/**
+ * Builds the complete Society Maintenance & Bills ledger for a particular society.
+ * Every verified residential member of that society is included:
+ * - If the member has uploaded a maintenance receipt screenshot/picture, their status is 'paid'.
+ * - If payment/receipt is missing or marked pending, the member is shown as 'pending'.
+ */
+export function buildSocietyMaintenanceLedger(
+  profiles: Profile[],
+  records: MaintenanceBillRecord[],
+  apartmentId: string,
+  defaultAmount: number = DEFAULT_MONTHLY_MAINTENANCE_AMOUNT,
+  billingPeriod: string = DEFAULT_BILLING_PERIOD
+): SocietyMemberMaintenanceEntry[] {
+  if (!apartmentId) return [];
+
+  const societyMembers = profiles.filter(
+    (p) =>
+      p.apartment_id === apartmentId &&
+      p.is_verified &&
+      p.role !== 'security'
+  );
+
+  const societyRecords = filterByApartmentScope(records, apartmentId);
+
+  return societyMembers.map((member) => {
+    const record = societyRecords.find((r) => r.profile_id === member.id);
+    const hasUploadedReceipt = Boolean(
+      record &&
+        record.status === 'paid' &&
+        record.receipt_image_url &&
+        record.receipt_image_url.trim().length > 0
+    );
+
+    return {
+      profile: member,
+      apartment_id: apartmentId,
+      flat_no: member.flat_no,
+      member_name: member.full_name,
+      billing_period: record?.billing_period || billingPeriod,
+      amount: record?.amount && record.amount > 0 ? record.amount : defaultAmount,
+      status: hasUploadedReceipt ? 'paid' : 'pending',
+      receipt_image_url: hasUploadedReceipt
+        ? record?.receipt_image_url || null
+        : null,
+      receipt_file_name: hasUploadedReceipt
+        ? record?.receipt_file_name || 'maintenance_receipt.png'
+        : null,
+      payment_method: hasUploadedReceipt
+        ? record?.payment_method || 'UPI / IMPS Screenshot'
+        : null,
+      transaction_ref: hasUploadedReceipt
+        ? record?.transaction_ref || null
+        : null,
+      paid_at: hasUploadedReceipt ? record?.paid_at || null : null,
+    };
+  });
+}
+
+/**
+ * Records a member's maintenance payment by attaching their uploaded receipt screenshot or picture.
+ * Validates that a receipt image and valid maintenance amount are provided.
+ */
+export function submitMaintenanceReceipt(
+  existingRecords: MaintenanceBillRecord[],
+  payload: {
+    apartment_id: string;
+    profile_id: string;
+    flat_no: string;
+    member_name: string;
+    amount: number;
+    billing_period?: string;
+    receipt_image_url: string;
+    receipt_file_name?: string;
+    payment_method?: MaintenanceBillRecord['payment_method'];
+    transaction_ref?: string;
+  }
+): { updatedRecords: MaintenanceBillRecord[]; error?: string } {
+  const cleanUrl = (payload.receipt_image_url || '').trim();
+  if (!cleanUrl) {
+    return {
+      updatedRecords: existingRecords,
+      error:
+        'Please upload a screenshot or picture of the maintenance receipt to verify payment.',
+    };
+  }
+
+  if (Number.isNaN(payload.amount) || payload.amount <= 0) {
+    return {
+      updatedRecords: existingRecords,
+      error: 'Please enter a valid maintenance amount in INR (₹).',
+    };
+  }
+
+  const nowIso = new Date().toISOString();
+  const billingPeriod = payload.billing_period || DEFAULT_BILLING_PERIOD;
+
+  const existingIndex = existingRecords.findIndex(
+    (r) =>
+      r.apartment_id === payload.apartment_id &&
+      r.profile_id === payload.profile_id
+  );
+
+  const newRecord: MaintenanceBillRecord = {
+    id:
+      existingIndex >= 0
+        ? existingRecords[existingIndex].id
+        : `maint-${Date.now()}-${payload.profile_id}`,
+    apartment_id: payload.apartment_id,
+    profile_id: payload.profile_id,
+    flat_no: payload.flat_no,
+    member_name: payload.member_name,
+    billing_period: billingPeriod,
+    amount: Math.round(payload.amount),
+    status: 'paid',
+    receipt_image_url: cleanUrl,
+    receipt_file_name:
+      payload.receipt_file_name?.trim() || 'maintenance_receipt_screenshot.png',
+    payment_method: payload.payment_method || 'UPI / IMPS Screenshot',
+    transaction_ref:
+      payload.transaction_ref?.trim() ||
+      `UTR${String(Date.now()).slice(-8)}`,
+    paid_at: nowIso,
+    updated_at: nowIso,
+  };
+
+  if (existingIndex >= 0) {
+    const copy = [...existingRecords];
+    copy[existingIndex] = newRecord;
+    return { updatedRecords: copy };
+  }
+
+  return { updatedRecords: [newRecord, ...existingRecords] };
+}
+
+/**
+ * Calculates aggregate maintenance statistics for a society's member ledger.
+ */
+export function getSocietyMaintenanceSummary(
+  entries: SocietyMemberMaintenanceEntry[]
+): {
+  totalMembers: number;
+  paidCount: number;
+  pendingCount: number;
+  totalCollectedAmount: number;
+  totalPendingAmount: number;
+} {
+  let paidCount = 0;
+  let pendingCount = 0;
+  let totalCollectedAmount = 0;
+  let totalPendingAmount = 0;
+
+  for (const entry of entries) {
+    if (entry.status === 'paid') {
+      paidCount += 1;
+      totalCollectedAmount += entry.amount;
+    } else {
+      pendingCount += 1;
+      totalPendingAmount += entry.amount;
+    }
+  }
+
+  return {
+    totalMembers: entries.length,
+    paidCount,
+    pendingCount,
+    totalCollectedAmount,
+    totalPendingAmount,
+  };
+}
+

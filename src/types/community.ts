@@ -158,3 +158,36 @@ export interface VisitorLog {
   duration_minutes?: number | null;
   created_at: string;
 }
+
+export interface MaintenanceBillRecord {
+  id: string;
+  apartment_id: string;
+  profile_id: string;
+  flat_no: string;
+  member_name: string;
+  billing_period: string;
+  amount: number;
+  status: 'paid' | 'pending';
+  receipt_image_url?: string | null;
+  receipt_file_name?: string | null;
+  payment_method?: 'UPI / IMPS Screenshot' | 'NEFT / RTGS Receipt' | 'Cheque Deposit Slip' | null;
+  transaction_ref?: string | null;
+  paid_at?: string | null;
+  updated_at: string;
+}
+
+export interface SocietyMemberMaintenanceEntry {
+  profile: Profile;
+  apartment_id: string;
+  flat_no: string;
+  member_name: string;
+  billing_period: string;
+  amount: number;
+  status: 'paid' | 'pending';
+  receipt_image_url: string | null;
+  receipt_file_name: string | null;
+  payment_method: MaintenanceBillRecord['payment_method'];
+  transaction_ref: string | null;
+  paid_at: string | null;
+}
+

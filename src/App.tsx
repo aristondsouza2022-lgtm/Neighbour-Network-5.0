@@ -10,6 +10,7 @@ import {
   CommunityPoll,
   ComplaintTicket,
   EmergencySOS,
+  MaintenanceBillRecord,
   MarketplaceItem,
   Profile,
   SocialEvent,
@@ -21,6 +22,7 @@ import {
   INITIAL_APARTMENTS,
   INITIAL_COMPLAINTS,
   INITIAL_EVENTS,
+  INITIAL_MAINTENANCE_RECORDS,
   INITIAL_MARKETPLACE_ITEMS,
   INITIAL_POLLS,
   INITIAL_PROFILES,
@@ -39,12 +41,14 @@ import {
   hasActiveApartmentSOS,
   MAX_SOCIAL_FEED_POSTS,
   ROLE_RING_CONFIG,
+  submitMaintenanceReceipt,
   transferMemberApartment,
 } from './utils/communityRules';
 import { LuxuryCrestLogo, RoleAvatar } from './components/LuxuryCrest';
 import { AuthPortal } from './components/AuthPortal';
 import { GlobalSocialFeed } from './components/GlobalSocialFeed';
 import { ApartmentMarketplace } from './components/ApartmentMarketplace';
+import { MaintenanceAndBills } from './components/MaintenanceAndBills';
 import { GovernanceHub } from './components/GovernanceHub';
 import { EmergencyAndHelpdesk } from './components/EmergencyAndHelpdesk';
 import { VisitorGateAccess } from './components/VisitorGateAccess';
@@ -53,6 +57,7 @@ import { MoreMenuHub } from './components/MoreMenuHub';
 import {
   Globe,
   ShoppingBag,
+  Receipt,
   Vote,
   Siren,
   QrCode,
@@ -69,6 +74,7 @@ import {
 type ActiveModule =
   | 'feed'
   | 'marketplace'
+  | 'maintenance-bills'
   | 'governance'
   | 'sos-helpdesk'
   | 'gate-pass'
@@ -128,6 +134,39 @@ export default function App() {
     useState<ComplaintTicket[]>(INITIAL_COMPLAINTS);
   const [visitorLogs, setVisitorLogs] =
     useState<VisitorLog[]>(INITIAL_VISITOR_LOGS);
+  const [maintenanceRecords, setMaintenanceRecords] = useState<
+    MaintenanceBillRecord[]
+  >(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem(
+          'neighbour_network_maintenance_v1'
+        );
+        if (saved) {
+          const parsed: MaintenanceBillRecord[] = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch {
+        // Fallback to INITIAL_MAINTENANCE_RECORDS
+      }
+    }
+    return INITIAL_MAINTENANCE_RECORDS;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(
+          'neighbour_network_maintenance_v1',
+          JSON.stringify(maintenanceRecords)
+        );
+      } catch {
+        // Ignore storage quota issues
+      }
+    }
+  }, [maintenanceRecords]);
 
   // Default to Sign-In page first; support ?autostart=1 query param for automated bypass
   const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
@@ -639,6 +678,12 @@ export default function App() {
           id: 'marketplace',
           label: 'Marketplace',
           icon: ShoppingBag,
+          scopeTag: 'Society',
+        },
+        {
+          id: 'maintenance-bills',
+          label: 'Maintenance & Bills',
+          icon: Receipt,
           scopeTag: 'Society',
         },
         {
@@ -1279,6 +1324,36 @@ export default function App() {
                             status === 'available' ? null : currentUser.id,
                         }
                       : item
+                  )
+                );
+              }}
+            />
+          )}
+
+          {activeModule === 'maintenance-bills' && (
+            <MaintenanceAndBills
+              profiles={profiles}
+              records={maintenanceRecords}
+              currentApartment={currentApartment}
+              currentUser={currentUser}
+              onSubmitReceipt={(payload) => {
+                const res = submitMaintenanceReceipt(
+                  maintenanceRecords,
+                  payload
+                );
+                if (!res.error) {
+                  setMaintenanceRecords(res.updatedRecords);
+                }
+                return { error: res.error };
+              }}
+              onMarkPending={(profileId) => {
+                setMaintenanceRecords((prev) =>
+                  prev.filter(
+                    (r) =>
+                      !(
+                        r.apartment_id === currentApartment.id &&
+                        r.profile_id === profileId
+                      )
                   )
                 );
               }}
