@@ -91,6 +91,39 @@ export default function App() {
 
   const [socialPosts, setSocialPosts] =
     useState<SocialPost[]>(INITIAL_SOCIAL_POSTS);
+
+  // Load the shared feed from Supabase once a real member session is active.
+  useEffect(() => {
+    if (!supabase || !currentUserId) return;
+    let active = true;
+    const loadSharedFeed = async () => {
+      const { data, error } = await supabase
+        .from('social_posts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(MAX_SOCIAL_FEED_POSTS);
+      if (error) {
+        console.error('Unable to load shared feed:', error.message);
+        return;
+      }
+      if (!active) return;
+      setSocialPosts((data ?? []).map((row) => ({
+        id: row.id,
+        author_id: row.author_id,
+        apartment_id: row.apartment_id,
+        content: row.content ?? '',
+        media_url: row.media_url,
+        media_type: row.media_type,
+        video_duration_sec: row.video_duration_sec ?? undefined,
+        likes_count: row.likes_count ?? 0,
+        liked_by: [],
+        comments: [],
+        created_at: row.created_at,
+      })) as SocialPost[]);
+    };
+    void loadSharedFeed();
+    return () => { active = false; };
+  }, [currentUserId]);
   const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>(
     INITIAL_MARKETPLACE_ITEMS
   );
@@ -1228,19 +1261,45 @@ export default function App() {
               profiles={profiles}
               apartments={apartments}
               currentUser={currentUser}
-              onCreatePost={(newPost) => {
+              onCreatePost={async (newPost) => {
+                if (!supabase) {
+                  console.error('Supabase is not configured; post was not saved.');
+                  return;
+                }
+                const mediaUrl = newPost.media_url ?? null;
+                const isPersistableMedia = Boolean(mediaUrl && /^https?:\\/\\//i.test(mediaUrl));
+                const { data, error } = await supabase
+                  .from('social_posts')
+                  .insert({
+                    author_id: currentUser.id,
+                    apartment_id: currentUser.apartment_id,
+                    content: newPost.content,
+                    media_url: isPersistableMedia ? mediaUrl : null,
+                    media_type: isPersistableMedia ? newPost.media_type : null,
+                    video_duration_sec: newPost.video_duration_sec ?? null,
+                  })
+                  .select('*')
+                  .single();
+                if (error || !data) {
+                  console.error('Unable to save post:', error?.message);
+                  return;
+                }
                 const post: SocialPost = {
-                  ...newPost,
-                  id: `post-${Date.now()}`,
-                  likes_count: 0,
+                  id: data.id,
+                  author_id: data.author_id,
+                  apartment_id: data.apartment_id,
+                  content: data.content ?? '',
+                  media_url: data.media_url,
+                  media_type: data.media_type,
+                  video_duration_sec: data.video_duration_sec ?? undefined,
+                  likes_count: data.likes_count ?? 0,
                   liked_by: [],
                   comments: [],
-                  created_at: new Date().toISOString(),
+                  created_at: data.created_at,
                 };
-                setSocialPosts(
-                  (prev) =>
-                    addSocialPostWithLimit(prev, post, MAX_SOCIAL_FEED_POSTS)
-                      .updatedPosts
+                setSocialPosts((prev) =>
+                  addSocialPostWithLimit([post, ...prev.filter((p) => p.id !== post.id)], post, MAX_SOCIAL_FEED_POSTS)
+                    .updatedPosts
                 );
               }}
               onToggleLike={(postId) => {
