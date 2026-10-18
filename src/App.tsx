@@ -1267,7 +1267,7 @@ export default function App() {
                   return;
                 }
                 const mediaUrl = newPost.media_url ?? null;
-                const isPersistableMedia = Boolean(mediaUrl && /^https?:\\/\\//i.test(mediaUrl));
+                const isPersistableMedia = Boolean(mediaUrl && (mediaUrl.startsWith('https://') || mediaUrl.startsWith('http://')));
                 const { data, error } = await supabase
                   .from('social_posts')
                   .insert({
