@@ -132,6 +132,7 @@ export function AuthPortal({
         return;
       }
 
+      const registrationRole = resolveRegistrationRole(referralCode);
       const { data, error } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,
@@ -159,9 +160,9 @@ export function AuthPortal({
           email: trimmedEmail,
           apartment_id: selectedApartmentId,
           flat_no: trimmedFlat,
-          role: 'resident',
+          role: registrationRole,
           admin_title: null,
-          is_verified: false,
+          is_verified: registrationRole === 'developer' || registrationRole === 'admin',
           warnings_count: 0,
         }, { onConflict: 'id' })
         .select('*')
