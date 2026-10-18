@@ -1294,25 +1294,54 @@ export default function App() {
               onCreatePost={async (newPost) => {
                 if (!supabase) {
                   console.error('Supabase is not configured; post was not saved.');
-                  return;
+                  window.alert('Posting is temporarily unavailable. Please try again later.');
+                  return false;
                 }
+
+                let storedMediaUrl: string | null = null;
                 const mediaUrl = newPost.media_url ?? null;
-                const isPersistableMedia = Boolean(mediaUrl && (mediaUrl.startsWith('https://') || mediaUrl.startsWith('http://')));
+                const hasMedia = Boolean(mediaUrl && newPost.media_type && newPost.media_type !== 'none');
+
+                if (hasMedia && mediaUrl) {
+                  try {
+                    const response = await fetch(mediaUrl);
+                    if (!response.ok) throw new Error('Could not read the selected media file.');
+                    const blob = await response.blob();
+                    const extension = blob.type.split('/')[1]?.replace('quicktime', 'mov').replace('jpeg', 'jpg') || (newPost.media_type === 'image' ? 'jpg' : 'mp4');
+                    const path = `${currentUser.id}/${crypto.randomUUID()}.${extension}`;
+                    const { error: uploadError } = await supabase.storage
+                      .from('social-post-media')
+                      .upload(path, blob, { contentType: blob.type || undefined, upsert: false });
+                    if (uploadError) throw uploadError;
+                    const { data: urlData } = supabase.storage.from('social-post-media').getPublicUrl(path);
+                    storedMediaUrl = urlData.publicUrl;
+                  } catch (uploadError) {
+                    console.error('Unable to upload social post media:', uploadError);
+                    window.alert('Your photo/video could not be uploaded, so the post was not published. Please try again with a smaller file.');
+                    return false;
+                  }
+                }
+
                 const { data, error } = await supabase
                   .from('social_posts')
                   .insert({
                     author_id: currentUser.id,
                     apartment_id: currentUser.apartment_id,
                     content: newPost.content,
-                    media_url: isPersistableMedia ? mediaUrl : null,
-                    media_type: isPersistableMedia ? newPost.media_type : null,
+                    media_url: storedMediaUrl,
+                    media_type: storedMediaUrl ? newPost.media_type : null,
                     video_duration_sec: newPost.video_duration_sec ?? null,
                   })
                   .select('*')
                   .single();
                 if (error || !data) {
                   console.error('Unable to save post:', error?.message);
-                  return;
+                  window.alert('The post could not be saved. Your text/photo is still in the composer; please try again.');
+                  if (storedMediaUrl) {
+                    const path = storedMediaUrl.split('/social-post-media/')[1];
+                    if (path) await supabase.storage.from('social-post-media').remove([decodeURIComponent(path)]);
+                  }
+                  return false;
                 }
                 const post: SocialPost = {
                   id: data.id,
@@ -1331,6 +1360,7 @@ export default function App() {
                   addSocialPostWithLimit(prev.filter((p) => p.id !== post.id), post, MAX_SOCIAL_FEED_POSTS)
                     .updatedPosts
                 );
+                return true;
               }}
               onToggleLike={async (postId) => {
                 if (!supabase) return;
