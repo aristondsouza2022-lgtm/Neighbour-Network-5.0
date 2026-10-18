@@ -1298,7 +1298,7 @@ export default function App() {
                   created_at: data.created_at,
                 };
                 setSocialPosts((prev) =>
-                  addSocialPostWithLimit([post, ...prev.filter((p) => p.id !== post.id)], post, MAX_SOCIAL_FEED_POSTS)
+                  addSocialPostWithLimit(prev.filter((p) => p.id !== post.id), post, MAX_SOCIAL_FEED_POSTS)
                     .updatedPosts
                 );
               }}
