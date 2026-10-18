@@ -30,7 +30,7 @@ interface GlobalSocialFeedProps {
       SocialPost,
       'id' | 'created_at' | 'likes_count' | 'liked_by' | 'comments'
     >
-  ) => void;
+  ) => Promise<boolean> | boolean;
   onToggleLike: (postId: string) => void;
   onAddComment: (postId: string, content: string) => void;
   onDeletePost: (postId: string) => void;
@@ -113,47 +113,41 @@ export function GlobalSocialFeed({
     const videoEl = document.createElement('video');
     videoEl.preload = 'metadata';
 
-    videoEl.onloadedmetadata = () => {
-      const rawDuration = videoEl.duration;
-      const duration =
-        Number.isFinite(rawDuration) && rawDuration > 0
-          ? Math.max(1, Math.round(rawDuration))
-          : 30;
+    const attachVideo = (duration: number) => {
       const check = validateVideoDuration(duration);
       setVideoDurationSec(duration);
-      setUploadedMediaUrl(objectUrl);
       setUploadedFileName(file.name);
       setMediaType('video');
-
       if (!check.valid) {
-        setUploadStatus({
-          type: 'error',
-          text: check.error || 'Video exceeds the 120-second (2-minute) limit.',
-        });
-      } else {
-        setUploadStatus({
-          type: 'info',
-          text: `Attached video "${file.name}" (${duration}s <= 120s limit) from your device.`,
-        });
+        setUploadStatus({ type: 'error', text: check.error || 'Video exceeds the 120-second (2-minute) limit.' });
+        URL.revokeObjectURL(objectUrl);
+        return;
       }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setUploadedMediaUrl(reader.result);
+          setUploadStatus({ type: 'info', text: `Attached video "${file.name}" (${duration}s / 120s max). Ready to publish.` });
+        }
+        URL.revokeObjectURL(objectUrl);
+      };
+      reader.onerror = () => {
+        setUploadStatus({ type: 'error', text: 'Could not read the selected video file from your device.' });
+        URL.revokeObjectURL(objectUrl);
+      };
+      reader.readAsDataURL(file);
     };
 
-    videoEl.onerror = () => {
-      setVideoDurationSec(30);
-      setUploadedMediaUrl(objectUrl);
-      setUploadedFileName(file.name);
-      setMediaType('video');
-      setUploadStatus({
-        type: 'info',
-        text: `Attached video "${file.name}" from your device.`,
-      });
+    videoEl.onloadedmetadata = () => {
+      const rawDuration = videoEl.duration;
+      attachVideo(Number.isFinite(rawDuration) && rawDuration > 0 ? Math.max(1, Math.round(rawDuration)) : 30);
     };
-
+    videoEl.onerror = () => attachVideo(30);
     videoEl.src = objectUrl;
     e.target.value = '';
   };
 
-  const handlePublish = (e: React.FormEvent) => {
+  const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploadStatus(null);
 
@@ -185,7 +179,7 @@ export function GlobalSocialFeed({
       ? posts[posts.length - 1]?.content.slice(0, 48)
       : null;
 
-    onCreatePost({
+    const published = await onCreatePost({
       author_id: currentUser.id,
       apartment_id: currentUser.apartment_id,
       content: content.trim(),
@@ -193,6 +187,10 @@ export function GlobalSocialFeed({
       media_url: hasMedia ? uploadedMediaUrl : null,
       video_duration_sec: mediaType === 'video' ? videoDurationSec : undefined,
     });
+    if (!published) {
+      setUploadStatus({ type: 'error', text: 'The post could not be saved. Your draft is still here; please try again.' });
+      return;
+    }
 
     setContent('');
     setMediaType('none');
