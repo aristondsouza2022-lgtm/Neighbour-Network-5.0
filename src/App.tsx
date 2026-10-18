@@ -93,37 +93,48 @@ export default function App() {
   const [socialPosts, setSocialPosts] =
     useState<SocialPost[]>(INITIAL_SOCIAL_POSTS);
 
-  // Load the shared feed from Supabase once a real member session is active.
+  // Load persisted community data and subscribe to changes for this signed-in session.
   useEffect(() => {
     if (!supabase || !currentUserId) return;
     let active = true;
     const loadSharedFeed = async () => {
-      const { data, error } = await supabase
-        .from('social_posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(MAX_SOCIAL_FEED_POSTS);
-      if (error) {
-        console.error('Unable to load shared feed:', error.message);
-        return;
-      }
+      const { data, error } = await supabase.from('social_posts').select('*').order('created_at', { ascending: false }).limit(MAX_SOCIAL_FEED_POSTS);
+      if (error) { console.error('Unable to load shared feed:', error.message); return; }
       if (!active) return;
-      setSocialPosts((data ?? []).map((row) => ({
-        id: row.id,
-        author_id: row.author_id,
-        apartment_id: row.apartment_id,
-        content: row.content ?? '',
-        media_url: row.media_url,
-        media_type: row.media_type,
-        video_duration_sec: row.video_duration_sec ?? undefined,
-        likes_count: row.likes_count ?? 0,
-        liked_by: [],
-        comments: [],
-        created_at: row.created_at,
-      })) as SocialPost[]);
+      setSocialPosts((data ?? []).map((row) => ({ id: row.id, author_id: row.author_id, apartment_id: row.apartment_id, content: row.content ?? '', media_url: row.media_url, media_type: row.media_type, video_duration_sec: row.video_duration_sec ?? undefined, likes_count: row.likes_count ?? 0, liked_by: [], comments: [], created_at: row.created_at })) as SocialPost[]);
+    };
+    const loadApartmentData = async () => {
+      const [market, pollRows, optionsRows, voteRows] = await Promise.all([
+        supabase.from('marketplace_items').select('*').order('created_at', { ascending: false }),
+        supabase.from('community_polls').select('*').order('created_at', { ascending: false }),
+        supabase.from('poll_options').select('*'),
+        supabase.from('poll_votes').select('*'),
+      ]);
+      if (!active) return;
+      if (market.error) console.error('Unable to load marketplace:', market.error.message);
+      else setMarketplaceItems((market.data ?? []) as MarketplaceItem[]);
+      if (pollRows.error) console.error('Unable to load polls:', pollRows.error.message);
+      else {
+        const options = optionsRows.data ?? [];
+        const votes = voteRows.data ?? [];
+        setPolls((pollRows.data ?? []).map((p: any) => ({
+          ...p,
+          options: options.filter((o: any) => o.poll_id === p.id).map((o: any) => ({
+            id: o.id, label: o.label, votes: votes.filter((v: any) => v.option_id === o.id).map((v: any) => v.profile_id),
+          })),
+        })) as CommunityPoll[]);
+      }
     };
     void loadSharedFeed();
-    return () => { active = false; };
+    void loadApartmentData();
+    const channel = supabase.channel('neighbour-network-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => { void loadSharedFeed(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_items' }, () => { void loadApartmentData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_polls' }, () => { void loadApartmentData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_options' }, () => { void loadApartmentData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => { void loadApartmentData(); })
+      .subscribe();
+    return () => { active = false; void supabase.removeChannel(channel); };
   }, [currentUserId]);
   const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>(
     INITIAL_MARKETPLACE_ITEMS
