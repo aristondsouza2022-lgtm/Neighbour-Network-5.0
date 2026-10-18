@@ -87,6 +87,7 @@ type ActiveModule =
 export default function App() {
   // Core Multi-Tenant State (with persistent database storage for registered member emails & roles)
   const [apartments, setApartments] = useState<Apartment[]>(INITIAL_APARTMENTS);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
 
   const [socialPosts, setSocialPosts] =
@@ -173,7 +174,6 @@ export default function App() {
   }, [maintenanceRecords]);
 
   // Never bypass authentication. Restore only a real Supabase session.
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
