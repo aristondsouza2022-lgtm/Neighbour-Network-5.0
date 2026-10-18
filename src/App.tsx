@@ -426,10 +426,10 @@ export default function App() {
   // ===========================================================================
   if (isWaitingForAdminApproval) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#0B0C10] via-[#141821] to-[#1F2833] text-[#F9F9F9]">
+      <div className="min-h-screen flex flex-col account-purple-black-gradient bg-[linear-gradient(135deg,#05010A_0%,#4C1D95_22%,#0A0314_48%,#581C87_74%,#2E1065_88%,#040108_100%)] text-[#F9F9F9]">
         {guidelinesModalElement}
         {/* Top Header */}
-        <header className="flex items-center justify-between gap-4 px-6 py-3.5 border-b border-[#D4AF37]/25 bg-[#0B0C10]/90 sticky top-0 z-40">
+        <header className="flex items-center justify-between gap-4 px-6 py-3.5 border-b border-[#D4AF37]/25 bg-[linear-gradient(90deg,rgba(7,2,14,0.94)_0%,rgba(46,16,101,0.88)_50%,rgba(7,2,14,0.94)_100%)] backdrop-blur-md sticky top-0 z-40">
           <div className="flex items-center gap-3 text-xl font-display font-bold tracking-wider text-[#D4AF37]">
             <LuxuryCrestLogo className="w-9 h-9 shrink-0" />
             <span>Neighbour Network</span>
@@ -679,7 +679,8 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col bg-gradient-to-b from-[#0B0C10] via-[#141821] to-[#1F2833] text-[#F9F9F9] relative ${
+      data-testid="logged-in-account-shell"
+      className={`min-h-screen flex flex-col account-purple-black-gradient bg-[linear-gradient(135deg,#05010A_0%,#4C1D95_22%,#0A0314_48%,#581C87_74%,#2E1065_88%,#040108_100%)] text-[#F9F9F9] relative ${
         isApartmentSOSActive ? 'sos-frame-active' : ''
       }`}
     >
@@ -761,7 +762,7 @@ export default function App() {
       })}
 
       {/* 3-Zone Top Navigation Header */}
-      <header className="w-full border-b border-[#D4AF37]/25 bg-[#0B0C10]/95 sticky top-0 z-40">
+      <header className="w-full border-b border-[#D4AF37]/25 bg-[linear-gradient(90deg,rgba(7,2,14,0.94)_0%,rgba(46,16,101,0.88)_50%,rgba(7,2,14,0.94)_100%)] backdrop-blur-md sticky top-0 z-40">
         <div className="w-full max-w-[1440px] mx-auto flex items-center justify-between gap-2 px-4 sm:px-6 py-3">
           {/* Zone 1: Brand Crest Logo + Neighbour Network */}
           <a

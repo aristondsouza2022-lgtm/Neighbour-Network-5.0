@@ -9,7 +9,8 @@
 
   body {
     font-family: var(--font-sans);
-    background: linear-gradient(135deg, #0B0C10 0%, #141821 50%, #1F2833 100%);
+    background: linear-gradient(135deg, #05010A 0%, #3B0764 25%, #090212 50%, #581C87 76%, #040108 100%);
+    background-attachment: fixed;
     color: #F9F9F9;
     min-height: 100vh;
     overflow-x: hidden;
@@ -24,6 +25,22 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
+}
+
+.account-purple-black-gradient {
+  background-color: #06020C;
+  background-image:
+    linear-gradient(135deg, #05010A 0%, #4C1D95 22%, #0A0314 48%, #581C87 74%, #2E1065 88%, #040108 100%);
+  background-attachment: fixed;
+}
+
+.account-purple-black-gradient .bg-\[\#141821\] {
+  background: linear-gradient(145deg, rgba(28, 10, 48, 0.76) 0%, rgba(11, 4, 20, 0.84) 100%) !important;
+  backdrop-filter: blur(12px);
+}
+
+.account-purple-black-gradient .bg-\[\#0B0C10\] {
+  background-color: rgba(9, 3, 18, 0.85) !important;
 }
 
 @keyframes sosBorderPulse {
