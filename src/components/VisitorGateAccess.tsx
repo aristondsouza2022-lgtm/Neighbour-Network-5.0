@@ -47,7 +47,11 @@ export function VisitorGateAccess({
   const [visitorType, setVisitorType] =
     useState<VisitorLog['visitor_type']>('guest');
   const [companyOrRelation, setCompanyOrRelation] = useState('');
-  const [expectedTime, setExpectedTime] = useState('Today · 20:00 IST');
+  const [expectedTime, setExpectedTime] = useState(() =>
+    new Date(Date.now() + 60 * 60 * 1000 - new Date().getTimezoneOffset() * 60 * 1000)
+      .toISOString()
+      .slice(0, 16)
+  );
   const [vehicleInputMap, setVehicleInputMap] = useState<
     Record<string, string>
   >({});
@@ -68,7 +72,7 @@ export function VisitorGateAccess({
       company_or_relation:
         companyOrRelation.trim() ||
         (visitorType === 'guest' ? 'Personal Guest' : 'Priority Concierge Delivery'),
-      expected_time: expectedTime.trim(),
+      expected_time: new Date(expectedTime).toISOString(),
       vehicle_no: null,
       pass_code: generateSixDigitPassCode(),
     });
@@ -162,9 +166,10 @@ export function VisitorGateAccess({
               Expected Arrival Window
             </label>
             <input
-              type="text"
+              type="datetime-local"
               value={expectedTime}
               onChange={(e) => setExpectedTime(e.target.value)}
+              required
               className="w-full px-3.5 py-2 rounded-lg bg-[#0B0C10] border border-white/15 text-sm text-[#F9F9F9] font-mono-tabular outline-none focus:border-[#D4AF37]"
             />
           </div>
@@ -251,23 +256,27 @@ export function VisitorGateAccess({
                     </span>
                   </div>
 
-                  {log.entry_time && (
-                    <div>
-                      <span className="text-[#F9F9F9]/50 block">Entry Logged</span>
-                      <span className="text-[#F9F9F9]">
-                        {new Date(log.entry_time).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </div>
-                  )}
+                  <div>
+                    <span className="text-[#F9F9F9]/50 block">In-time</span>
+                    <span className="text-[#F9F9F9]">
+                      {log.entry_time
+                        ? new Date(log.entry_time).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+                        : 'Not entered yet'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[#F9F9F9]/50 block">Exit-time</span>
+                    <span className="text-[#F9F9F9]">
+                      {log.exit_time
+                        ? new Date(log.exit_time).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+                        : log.status === 'inside' ? 'Still inside premises' : 'Not exited yet'}
+                    </span>
+                  </div>
 
                   {log.exit_time && (
                     <div>
-                      <span className="text-[#F9F9F9]/50 block">
-                        Total Duration Stayed
-                      </span>
+                      <span className="text-[#F9F9F9]/50 block">Total Duration Stayed</span>
                       <span className="text-[#D4AF37] font-semibold">
                         {log.duration_minutes} mins (Archived)
                       </span>
