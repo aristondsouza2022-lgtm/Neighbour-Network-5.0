@@ -72,10 +72,7 @@ export function resolveRegistrationRole(
   referralCode: string | undefined,
   _requestedRole: UserRole = 'resident'
 ): UserRole {
-  const trimmed = (referralCode || '').trim();
-  if (trimmed === SECRET_DEVELOPER_REFERRAL_CODE) {
-    return 'developer';
-  }
+  // Public registration must never grant privileged roles. Admins assign roles after approval.
   return 'resident';
 }
 
@@ -88,7 +85,7 @@ export function canChangeMemberRole(actor: Profile, target: Profile): boolean {
     return true;
   }
   if (
-    (actor.role === 'admin' || actor.role === 'committee') &&
+    actor.role === 'admin' &&
     actor.apartment_id === target.apartment_id &&
     target.role !== 'developer'
   ) {
@@ -110,7 +107,7 @@ export function canApproveApartmentMember(
     return true;
   }
   return (
-    (actor.role === 'admin' || actor.role === 'committee') &&
+    actor.role === 'admin' &&
     actor.apartment_id === pendingMember.apartment_id
   );
 }
