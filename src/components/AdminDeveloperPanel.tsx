@@ -42,8 +42,7 @@ export function AdminDeveloperPanel({
   const isDeveloper = currentUser.role === 'developer';
   const canManageRoles =
     currentUser.role === 'developer' ||
-    currentUser.role === 'admin' ||
-    currentUser.role === 'committee';
+    currentUser.role === 'admin';
 
   // Filter profiles in current apartment
   const aptProfiles = profiles.filter(
@@ -62,52 +61,6 @@ export function AdminDeveloperPanel({
   const [roleSearchQuery, setRoleSearchQuery] = useState('');
   const [roleUpdateNotice, setRoleUpdateNotice] = useState<string | null>(null);
   const [approvalNotice, setApprovalNotice] = useState<string | null>(null);
-
-  // Direct Add Member into Apartment State (For Developer & Admin)
-  const [directMemberName, setDirectMemberName] = useState('');
-  const [directMemberEmail, setDirectMemberEmail] = useState('');
-  const [directMemberFlat, setDirectMemberFlat] = useState('');
-  const [directMemberApartmentId, setDirectMemberApartmentId] = useState(
-    currentApartment.id
-  );
-
-  const handleDirectAddMember = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      !directMemberName.trim() ||
-      !directMemberEmail.trim() ||
-      !directMemberFlat.trim()
-    ) {
-      return;
-    }
-    const targetAptId = isDeveloper
-      ? directMemberApartmentId
-      : currentApartment.id;
-    const targetAptName =
-      apartments.find((a) => a.id === targetAptId)?.name ||
-      currentApartment.name;
-
-    const newMember: Profile = {
-      id: `prof-user-${Date.now()}`,
-      full_name: directMemberName.trim(),
-      email: directMemberEmail.trim().toLowerCase(),
-      apartment_id: targetAptId,
-      flat_no: directMemberFlat.trim().toUpperCase(),
-      role: 'resident',
-      admin_title: null,
-      is_verified: true,
-      warnings_count: 0,
-      created_at: new Date().toISOString(),
-    };
-
-    onUpdateProfilesBatch([newMember, ...profiles]);
-    setApprovalNotice(
-      `Directly added and approved ${newMember.full_name} (Flat ${newMember.flat_no}) into ${targetAptName} with verified Resident access.`
-    );
-    setDirectMemberName('');
-    setDirectMemberEmail('');
-    setDirectMemberFlat('');
-  };
 
   const filteredMemberRoster = aptProfiles.filter((p) => {
     if (!roleSearchQuery.trim()) return true;
@@ -238,16 +191,15 @@ export function AdminDeveloperPanel({
               Waiting for Admin Access)
             </h3>
             <p className="text-xs text-[#F9F9F9]/65 mt-0.5">
-              Both the particular{' '}
+              The particular{' '}
               <span className="text-[#10B981] font-medium">
-                Admin / Managing Committee of the Apartment
+                Admin of the Apartment
               </span>{' '}
               and the{' '}
               <span className="text-[#EF4444] font-medium">
                 Developer Role
               </span>{' '}
-              can approve pending members, approve apartment transfers, or add
-              new members into the apartments.
+              can approve pending resident registrations and apartment transfers. New residents must register their own accounts before approval.
             </p>
           </div>
         </div>
@@ -339,76 +291,6 @@ export function AdminDeveloperPanel({
           </div>
         )}
 
-        {/* Direct Add Member into Apartment Form (For Developer & Apartment Admin) */}
-        <form
-          onSubmit={handleDirectAddMember}
-          className="pt-4 border-t border-white/10 space-y-3"
-        >
-          <div className="text-xs font-semibold uppercase tracking-wider text-[#D4AF37]">
-            Add / Onboard Member Directly into Apartment ({isDeveloper ? 'Developer All-Society Authority' : `${currentApartment.name} Admin`})
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
-            <div>
-              <label className="block text-[11px] text-[#F9F9F9]/75 mb-1">
-                Member Full Name
-              </label>
-              <input
-                type="text"
-                value={directMemberName}
-                onChange={(e) => setDirectMemberName(e.target.value)}
-                placeholder="e.g., Siddharth Oberoi"
-                className="w-full px-3 py-2 rounded-lg bg-[#0B0C10] border border-white/15 text-xs text-[#F9F9F9]"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] text-[#F9F9F9]/75 mb-1">
-                Member Email
-              </label>
-              <input
-                type="email"
-                value={directMemberEmail}
-                onChange={(e) => setDirectMemberEmail(e.target.value)}
-                placeholder="siddharth@estate.in"
-                className="w-full px-3 py-2 rounded-lg bg-[#0B0C10] border border-white/15 text-xs text-[#F9F9F9]"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] text-[#F9F9F9]/75 mb-1">
-                Target Apartment
-              </label>
-              <select
-                value={isDeveloper ? directMemberApartmentId : currentApartment.id}
-                disabled={!isDeveloper}
-                onChange={(e) => setDirectMemberApartmentId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[#0B0C10] border border-white/15 text-xs text-[#F9F9F9]"
-              >
-                {apartments.map((apt) => (
-                  <option key={apt.id} value={apt.id}>
-                    {apt.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] text-[#F9F9F9]/75 mb-1">
-                Flat No.
-              </label>
-              <input
-                type="text"
-                value={directMemberFlat}
-                onChange={(e) => setDirectMemberFlat(e.target.value)}
-                placeholder="e.g., C-1402"
-                className="w-full px-3 py-2 rounded-lg bg-[#0B0C10] border border-white/15 text-xs text-[#F9F9F9] font-mono-tabular uppercase"
-              />
-            </div>
-            <button
-              type="submit"
-              className="py-2 px-4 rounded-lg bg-[#D4AF37] hover:bg-[#e3be42] text-[#0B0C10] font-semibold text-xs cursor-pointer whitespace-nowrap"
-            >
-              + Add Member to Apartment
-            </button>
-          </div>
-        </form>
       </div>
 
       {/* SECTION 2: MEMBER ROLE MANAGEMENT (SHARED BY ADMINS & DEVELOPERS) */}
@@ -425,9 +307,7 @@ export function AdminDeveloperPanel({
                 {currentApartment.name})
               </h3>
               <p className="text-xs text-[#F9F9F9]/65 mt-0.5">
-                New members automatically receive the Resident (Blue Ring) role
-                by default. Admins and Developers can promote any Resident to
-                Admin / Committee (Green Ring) or assign Gate Security.
+                New registrations start as pending Residents. Admins and Developers can change approved members to Resident or Admin / Committee. Only the apartment Admin can assign Gate Security.
               </p>
             </div>
 
@@ -499,8 +379,8 @@ export function AdminDeveloperPanel({
                         <option value="admin">
                           Admin / Committee (Green Ring)
                         </option>
-                        <option value="security">
-                          Gate Security (Gray Ring)
+                        <option value="security" disabled={currentUser.role !== 'admin'}>
+                          Gate Security (Gray Ring — Admin Only)
                         </option>
                       </select>
                     </div>
