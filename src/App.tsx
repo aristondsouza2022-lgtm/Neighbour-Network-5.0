@@ -150,6 +150,12 @@ export default function App() {
       if (error) console.error('Unable to load visitor logs:', error.message);
       else setVisitorLogs((data ?? []) as VisitorLog[]);
     };
+    const loadProfiles = async () => {
+      const { data, error } = await supabase.from('profiles').select('*');
+      if (!active) return;
+      if (error) console.error('Unable to refresh resident approvals:', error.message);
+      else setProfiles((data ?? []) as Profile[]);
+    };
     void loadSharedFeed();
     void loadApartmentData();
     void loadVisitorLogs();
@@ -160,6 +166,7 @@ export default function App() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_options' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visitor_logs' }, () => { void loadVisitorLogs(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { void loadProfiles(); })
       .subscribe();
     return () => { active = false; void supabase.removeChannel(channel); };
   }, [currentUserId]);
