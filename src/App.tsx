@@ -144,14 +144,22 @@ export default function App() {
         })) as CommunityPoll[]);
       }
     };
+    const loadVisitorLogs = async () => {
+      const { data, error } = await supabase.from('visitor_logs').select('*').order('created_at', { ascending: false });
+      if (!active) return;
+      if (error) console.error('Unable to load visitor logs:', error.message);
+      else setVisitorLogs((data ?? []) as VisitorLog[]);
+    };
     void loadSharedFeed();
     void loadApartmentData();
+    void loadVisitorLogs();
     const channel = supabase.channel('neighbour-network-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => { void loadSharedFeed(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_items' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'community_polls' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_options' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => { void loadApartmentData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visitor_logs' }, () => { void loadVisitorLogs(); })
       .subscribe();
     return () => { active = false; void supabase.removeChannel(channel); };
   }, [currentUserId]);
@@ -168,7 +176,7 @@ export default function App() {
   const [complaints, setComplaints] =
     useState<ComplaintTicket[]>(INITIAL_COMPLAINTS);
   const [visitorLogs, setVisitorLogs] =
-    useState<VisitorLog[]>(INITIAL_VISITOR_LOGS);
+    useState<VisitorLog[]>(supabase ? [] : INITIAL_VISITOR_LOGS);
   const [maintenanceRecords, setMaintenanceRecords] = useState<
     MaintenanceBillRecord[]
   >(() => {
@@ -305,9 +313,7 @@ export default function App() {
   // Particular Admins of the current apartment + Lead System Developers who can grant access
   const currentApartmentAdminsAndDevelopers = useMemo(() => {
     const aptAdmins = profiles.filter(
-      (p) =>
-        p.apartment_id === currentApartment.id &&
-        (p.role === 'admin' || p.role === 'committee')
+      (p) => p.apartment_id === currentApartment.id && p.role === 'admin'
     );
     const developers = profiles.filter((p) => p.role === 'developer');
     return [...aptAdmins, ...developers];
@@ -1628,52 +1634,53 @@ export default function App() {
               logs={visitorLogs}
               currentApartment={currentApartment}
               currentUser={currentUser}
-              onPreBookVisitor={(entry) => {
-                setVisitorLogs((prev) => [
-                  {
-                    ...entry,
-                    id: `vis-${Date.now()}`,
-                    status: 'pre_booked',
-                    entry_time: null,
-                    exit_time: null,
-                    duration_minutes: null,
-                    created_at: new Date().toISOString(),
-                  },
-                  ...prev,
-                ]);
+              onPreBookVisitor={async (entry) => {
+                if (!supabase) {
+                  alert('Database connection is unavailable. Visitor passes cannot be saved.');
+                  return;
+                }
+                const { data, error } = await supabase
+                  .from('visitor_logs')
+                  .insert({ ...entry, status: 'pre_booked', entry_time: null, exit_time: null, duration_minutes: null })
+                  .select('*')
+                  .single();
+                if (error || !data) {
+                  alert(error?.message || 'Could not save the visitor pass.');
+                  return;
+                }
+                setVisitorLogs((prev) => [data as VisitorLog, ...prev.filter((log) => log.id !== data.id)]);
               }}
-              onApproveEntryAtGate={(logId, vehicleNo, code) => {
-                setVisitorLogs((prev) =>
-                  prev.map((l) =>
-                    l.id === logId
-                      ? {
-                          ...l,
-                          status: 'inside',
-                          vehicle_no: vehicleNo,
-                          pass_code: code,
-                          entry_time: new Date().toISOString(),
-                        }
-                      : l
-                  )
-                );
+              onApproveEntryAtGate={async (logId, vehicleNo, code) => {
+                if (!supabase) return;
+                const { data, error } = await supabase
+                  .from('visitor_logs')
+                  .update({ status: 'inside', vehicle_no: vehicleNo, pass_code: code, entry_time: new Date().toISOString() })
+                  .eq('id', logId)
+                  .select('*')
+                  .single();
+                if (error || !data) {
+                  alert(error?.message || 'Could not record visitor entry. Check that you are signed in as Gate Security or an apartment Admin.');
+                  return;
+                }
+                setVisitorLogs((prev) => prev.map((log) => log.id === logId ? data as VisitorLog : log));
               }}
-              onMarkExitAtGate={(logId) => {
-                setVisitorLogs((prev) =>
-                  prev.map((l) => {
-                    if (l.id !== logId) return l;
-                    const exitIso = new Date().toISOString();
-                    const mins = calculateStayDurationMinutes(
-                      l.entry_time || exitIso,
-                      exitIso
-                    );
-                    return {
-                      ...l,
-                      status: 'exited',
-                      exit_time: exitIso,
-                      duration_minutes: mins,
-                    };
-                  })
-                );
+              onMarkExitAtGate={async (logId) => {
+                if (!supabase) return;
+                const log = visitorLogs.find((item) => item.id === logId);
+                if (!log) return;
+                const exitIso = new Date().toISOString();
+                const mins = calculateStayDurationMinutes(log.entry_time || exitIso, exitIso);
+                const { data, error } = await supabase
+                  .from('visitor_logs')
+                  .update({ status: 'exited', exit_time: exitIso, duration_minutes: mins })
+                  .eq('id', logId)
+                  .select('*')
+                  .single();
+                if (error || !data) {
+                  alert(error?.message || 'Could not record visitor exit. Check that you are signed in as Gate Security or an apartment Admin.');
+                  return;
+                }
+                setVisitorLogs((prev) => prev.map((item) => item.id === logId ? data as VisitorLog : item));
               }}
             />
           )}
@@ -1684,12 +1691,16 @@ export default function App() {
               profiles={profiles}
               currentApartment={currentApartment}
               currentUser={currentUser}
-              onVerifyResident={(profileId) => {
-                setProfiles((prev) =>
-                  prev.map((p) =>
-                    p.id === profileId ? { ...p, is_verified: true } : p
-                  )
-                );
+              onVerifyResident={async (profileId) => {
+                if (!supabase) return;
+                const { error } = await supabase.rpc('approve_resident_member', { p_profile_id: profileId });
+                if (error) {
+                  alert(error.message);
+                  return;
+                }
+                const { data, error: refreshError } = await supabase.from('profiles').select('*');
+                if (refreshError) alert(refreshError.message);
+                else if (data) setProfiles(data as Profile[]);
               }}
               onUpdateProfilesBatch={(updated) => setProfiles(updated)}
               onCreateNewApartment={(newApt) => {
@@ -1700,30 +1711,19 @@ export default function App() {
                 };
                 setApartments((prev) => [...prev, created]);
               }}
-              onToggleCommitteeAppointment={(profileId, targetRole) => {
-                setProfiles((prev) =>
-                  prev.map((p) => {
-                    if (p.id !== profileId) return p;
-                    if (targetRole) {
-                      return {
-                        ...p,
-                        role: targetRole,
-                        admin_title:
-                          targetRole === 'admin' || targetRole === 'committee'
-                            ? p.admin_title
-                            : null,
-                        is_verified: true,
-                      };
-                    }
-                    const isCom =
-                      p.role === 'admin' || p.role === 'committee';
-                    return {
-                      ...p,
-                      role: isCom ? 'resident' : 'committee',
-                      admin_title: null,
-                    };
-                  })
-                );
+              onToggleCommitteeAppointment={async (profileId, targetRole) => {
+                if (!supabase || !targetRole) return;
+                const { error } = await supabase.rpc('change_member_role', {
+                  p_profile_id: profileId,
+                  p_new_role: targetRole,
+                });
+                if (error) {
+                  alert(error.message);
+                  return;
+                }
+                const { data, error: refreshError } = await supabase.from('profiles').select('*');
+                if (refreshError) alert(refreshError.message);
+                else if (data) setProfiles(data as Profile[]);
               }}
             />
           )}
