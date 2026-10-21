@@ -2,10 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Apartment, Profile } from '../types/community';
 import { supabase } from '../lib/supabase';
 import {
-  resolveRegistrationRole,
   validateFlatUniqueness,
   transferMemberApartment,
-  SECRET_DEVELOPER_REFERRAL_CODE,
   ROLE_RING_CONFIG,
 } from '../utils/communityRules';
 import { LuxuryCrestLogo } from './LuxuryCrest';
@@ -46,7 +44,6 @@ export function AuthPortal({
     apartments[0]?.id || 'apt-trump'
   );
   const [flatNo, setFlatNo] = useState('');
-  const [referralCode, setReferralCode] = useState('');
   // Optional Apartment Shift / Transfer during Returning Member Login
   const [loginTargetApartmentId, setLoginTargetApartmentId] = useState<string>('');
   const [loginTransferFlatNo, setLoginTransferFlatNo] = useState<string>('');
@@ -115,6 +112,11 @@ export function AuthPortal({
           await supabase.auth.signOut();
           throw new Error('Your account profile is not ready yet. Confirm your email, then try again. If this continues, contact the administrator.');
         }
+        if (!row.is_verified && row.role !== 'developer') {
+          await supabase.auth.signOut();
+          setErrorMessage('Your account is awaiting residence approval from your apartment Admin or a Lead Developer. You can log in after your invite is approved.');
+          return;
+        }
         onSignInProfile(row as Profile);
         return;
       }
@@ -132,7 +134,6 @@ export function AuthPortal({
         return;
       }
 
-      const registrationRole = resolveRegistrationRole(referralCode);
       const { data, error } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,
@@ -148,30 +149,23 @@ export function AuthPortal({
 
       if (!data.session || !data.user) {
         setMode('login');
-        setSuccessMessage('Check your email and confirm your account before logging in.');
+        setSuccessMessage('Check your email to confirm your account. After confirmation, an apartment Admin or Lead Developer must approve your residence invite before you can log in.');
         return;
       }
 
       const { data: row, error: profileError } = await supabase
         .from('profiles')
-        .upsert({
-          id: data.user.id,
-          full_name: trimmedName,
-          email: trimmedEmail,
-          apartment_id: selectedApartmentId,
-          flat_no: trimmedFlat,
-          role: registrationRole,
-          admin_title: null,
-          is_verified: registrationRole === 'developer' || registrationRole === 'admin',
-          warnings_count: 0,
-        }, { onConflict: 'id' })
         .select('*')
+        .eq('id', data.user.id)
         .single();
       if (profileError || !row) {
         await supabase.auth.signOut();
-        throw new Error(profileError?.message || 'Your account was created, but the resident profile could not be saved. Please contact the administrator.');
+        throw new Error(profileError?.message || 'Your account was created, but its pending resident profile was not found. Please contact the administrator.');
       }
-      onRegisterProfile(row as Profile, false);
+      onRegisterProfile(row as Profile, true);
+      await supabase.auth.signOut();
+      setMode('login');
+      setSuccessMessage('Your resident registration has been submitted. An apartment Admin or Lead Developer must approve your invite before you can log in.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Authentication failed. Please try again.';
       setErrorMessage(message);
@@ -496,27 +490,6 @@ export function AuthPortal({
                   </div>
 
                   {/* Optional Developer Referral Key */}
-                  <div>
-                    <label
-                      htmlFor="auth-referral"
-                      className="block text-xs font-medium text-[#D4AF37] mb-1"
-                    >
-                      Optional Developer Referral Key (Leave blank for default
-                      Resident role)
-                    </label>
-                    <div className="relative">
-                      <KeyRound className="w-4 h-4 text-[#D4AF37] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        id="auth-referral"
-                        type="text"
-                        value={referralCode}
-                        onChange={(e) => setReferralCode(e.target.value)}
-                        placeholder="Optional lead developer key"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-black/35 backdrop-blur-sm border border-[#D4AF37]/45 focus:border-[#D4AF37] text-sm text-[#F9F9F9] font-mono-tabular outline-none"
-                      />
-                    </div>
-                  </div>
-
                   <button
                     type="submit"
                     className="w-full py-3 px-5 rounded-lg bg-[#D4AF37] hover:bg-[#e2be46] text-[#0B0C10] font-semibold text-sm tracking-wide transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg"
