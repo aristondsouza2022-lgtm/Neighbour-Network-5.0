@@ -1724,21 +1724,37 @@ export default function App() {
                 );
                 broadcastSOSUpdate(updated);
               }}
-              onCreateComplaint={(ticket) => {
-                setComplaints((prev) => [
-                  {
-                    ...ticket,
-                    id: `cmp-${Date.now()}`,
-                    status: 'Open',
-                    created_at: new Date().toISOString(),
-                  },
-                  ...prev,
-                ]);
+              onCreateComplaint={async (ticket) => {
+                if (!supabase) {
+                  window.alert('Database connection is unavailable. Your helpdesk ticket was not shared.');
+                  return;
+                }
+                const { data, error } = await supabase.from('complaint_tickets').insert({
+                  apartment_id: ticket.apartment_id,
+                  author_id: ticket.author_id,
+                  flat_no: ticket.flat_no,
+                  category: ticket.category,
+                  title: ticket.title,
+                  description: ticket.description,
+                  status: 'Open',
+                }).select('*').single();
+                if (error || !data) {
+                  console.error('Could not save helpdesk ticket:', error?.message);
+                  window.alert(error?.message || 'Could not submit your helpdesk ticket. Please try again.');
+                  return;
+                }
+                setComplaints((prev) => [data as ComplaintTicket, ...prev.filter((c) => c.id !== data.id)]);
               }}
-              onUpdateComplaintStatus={(ticketId, status) => {
-                setComplaints((prev) =>
-                  prev.map((c) => (c.id === ticketId ? { ...c, status } : c))
-                );
+              onUpdateComplaintStatus={async (ticketId, status) => {
+                if (!supabase) return;
+                const { data, error } = await supabase.from('complaint_tickets')
+                  .update({ status }).eq('id', ticketId).select('*').single();
+                if (error || !data) {
+                  console.error('Could not update helpdesk ticket:', error?.message);
+                  window.alert(error?.message || 'Ticket status could not be synchronized. Check your permissions and try again.');
+                  return;
+                }
+                setComplaints((prev) => prev.map((c) => c.id === ticketId ? data as ComplaintTicket : c));
               }}
             />
           )}
