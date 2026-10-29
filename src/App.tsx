@@ -168,9 +168,29 @@ export default function App() {
       if (error) console.error('Unable to refresh resident approvals:', error.message);
       else setProfiles((data ?? []) as Profile[]);
     };
+    const loadEmergencyAndHelpdesk = async () => {
+      const [sosResult, complaintResult, profileResult] = await Promise.all([
+        supabase.from('emergency_sos').select('*').order('created_at', { ascending: false }),
+        supabase.from('complaint_tickets').select('*').order('created_at', { ascending: false }),
+        supabase.from('profiles').select('id,full_name'),
+      ]);
+      if (!active) return;
+      if (sosResult.error) console.error('Unable to load shared SOS alerts:', sosResult.error.message);
+      else {
+        const names = new Map((profileResult.data ?? []).map((p: any) => [p.id, p.full_name]));
+        setSosAlerts((sosResult.data ?? []).map((row: any) => ({
+          ...row,
+          triggered_by_name: names.get(row.triggered_by) ?? 'Community member',
+          resolved_by_name: row.resolved_by_name ?? (names.get(row.resolved_by) ?? null),
+        })) as EmergencySOS[]);
+      }
+      if (complaintResult.error) console.error('Unable to load shared helpdesk tickets:', complaintResult.error.message);
+      else setComplaints((complaintResult.data ?? []) as ComplaintTicket[]);
+    };
     void loadSharedFeed();
     void loadApartmentData();
     void loadVisitorLogs();
+    void loadEmergencyAndHelpdesk();
     const channel = supabase.channel('neighbour-network-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => { void loadSharedFeed(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_items' }, () => { void loadApartmentData(); })
@@ -180,7 +200,9 @@ export default function App() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_events' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_interests' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visitor_logs' }, () => { void loadVisitorLogs(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { void loadProfiles(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { void loadProfiles(); void loadEmergencyAndHelpdesk(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_sos' }, () => { void loadEmergencyAndHelpdesk(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'complaint_tickets' }, () => { void loadEmergencyAndHelpdesk(); })
       .subscribe();
     return () => { active = false; void supabase.removeChannel(channel); };
   }, [currentUserId]);
