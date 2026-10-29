@@ -162,6 +162,20 @@ export default function App() {
       if (error) console.error('Unable to load visitor logs:', error.message);
       else setVisitorLogs((data ?? []) as VisitorLog[]);
     };
+    const loadMaintenanceBills = async () => {
+      const { data, error } = await supabase.from('maintenance_bills').select('*').order('updated_at', { ascending: false });
+      if (!active) return;
+      if (error) {
+        console.error('Unable to load shared maintenance bills:', error.message);
+        return;
+      }
+      const names = new Map(profiles.map((profile) => [profile.id, profile.full_name]));
+      setMaintenanceRecords((data ?? []).map((row: any) => ({
+        ...row,
+        member_name: row.member_name || names.get(row.profile_id) || 'Resident',
+        amount: Number(row.amount),
+      })) as MaintenanceBillRecord[]);
+    };
     const loadProfiles = async () => {
       const { data, error } = await supabase.from('profiles').select('*');
       if (!active) return;
@@ -190,6 +204,7 @@ export default function App() {
     void loadSharedFeed();
     void loadApartmentData();
     void loadVisitorLogs();
+    void loadMaintenanceBills();
     void loadEmergencyAndHelpdesk();
     const channel = supabase.channel('neighbour-network-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => { void loadSharedFeed(); })
@@ -200,6 +215,7 @@ export default function App() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_events' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_interests' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visitor_logs' }, () => { void loadVisitorLogs(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_bills' }, () => { void loadMaintenanceBills(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { void loadProfiles(); void loadEmergencyAndHelpdesk(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_sos' }, () => { void loadEmergencyAndHelpdesk(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'complaint_tickets' }, () => { void loadEmergencyAndHelpdesk(); })
@@ -1526,26 +1542,77 @@ export default function App() {
               records={maintenanceRecords}
               currentApartment={currentApartment}
               currentUser={currentUser}
-              onSubmitReceipt={(payload) => {
-                const res = submitMaintenanceReceipt(
-                  maintenanceRecords,
-                  payload
+              onSubmitReceipt={async (payload) => {
+                const res = submitMaintenanceReceipt(maintenanceRecords, payload);
+                if (res.error) return { error: res.error };
+                if (!supabase) return { error: 'Database connection is unavailable. Your receipt was not shared.' };
+                const savedRecord = res.updatedRecords.find((record) =>
+                  record.apartment_id === payload.apartment_id &&
+                  record.profile_id === payload.profile_id
                 );
-                if (!res.error) {
-                  setMaintenanceRecords(res.updatedRecords);
+                if (!savedRecord) return { error: 'Could not prepare the maintenance receipt.' };
+                const { data, error } = await supabase.from('maintenance_bills').upsert({
+                  apartment_id: savedRecord.apartment_id,
+                  profile_id: savedRecord.profile_id,
+                  flat_no: savedRecord.flat_no,
+                  member_name: savedRecord.member_name,
+                  billing_period: savedRecord.billing_period,
+                  amount: savedRecord.amount,
+                  status: savedRecord.status,
+                  receipt_image_url: savedRecord.receipt_image_url?.startsWith('data:image/') ? savedRecord.receipt_image_url : savedRecord.receipt_image_url,
+                  receipt_file_name: savedRecord.receipt_file_name ?? null,
+                  payment_method: savedRecord.payment_method ?? null,
+                  transaction_ref: savedRecord.transaction_ref ?? null,
+                  paid_at: savedRecord.paid_at ?? new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: 'profile_id,billing_period' }).select('*').single();
+                if (error || !data) {
+                  console.error('Could not sync maintenance receipt:', error?.message);
+                  return { error: error?.message || 'Receipt could not be synchronized. Please try again.' };
                 }
-                return { error: res.error };
+                setMaintenanceRecords((prev) => [
+                  { ...data, amount: Number(data.amount) } as MaintenanceBillRecord,
+                  ...prev.filter((record) => record.id !== data.id &&
+                    !(record.profile_id === data.profile_id && record.billing_period === data.billing_period)),
+                ]);
+                return {};
               }}
-              onMarkPending={(profileId) => {
-                setMaintenanceRecords((prev) =>
-                  prev.filter(
-                    (r) =>
-                      !(
-                        r.apartment_id === currentApartment.id &&
-                        r.profile_id === profileId
-                      )
-                  )
+              onMarkPending={async (profileId) => {
+                if (!supabase) {
+                  window.alert('Database connection is unavailable. Maintenance status was not changed.');
+                  return;
+                }
+                const member = profiles.find((profile) => profile.id === profileId);
+                if (!member) return;
+                const periodRecord = maintenanceRecords.find((record) =>
+                  record.apartment_id === currentApartment.id && record.profile_id === profileId
                 );
+                const billingPeriod = periodRecord?.billing_period ?? 'October 2026';
+                const { data, error } = await supabase.from('maintenance_bills').upsert({
+                  apartment_id: currentApartment.id,
+                  profile_id: profileId,
+                  flat_no: member.flat_no,
+                  member_name: member.full_name,
+                  billing_period: billingPeriod,
+                  amount: periodRecord?.amount ?? 2500,
+                  status: 'pending',
+                  receipt_image_url: null,
+                  receipt_file_name: null,
+                  payment_method: null,
+                  transaction_ref: null,
+                  paid_at: null,
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: 'profile_id,billing_period' }).select('*').single();
+                if (error || !data) {
+                  console.error('Could not sync maintenance status:', error?.message);
+                  window.alert(error?.message || 'Maintenance status could not be synchronized.');
+                  return;
+                }
+                setMaintenanceRecords((prev) => [
+                  { ...data, amount: Number(data.amount) } as MaintenanceBillRecord,
+                  ...prev.filter((record) => record.id !== data.id &&
+                    !(record.profile_id === data.profile_id && record.billing_period === data.billing_period)),
+                ]);
               }}
             />
           )}
