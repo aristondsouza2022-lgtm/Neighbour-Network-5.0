@@ -84,6 +84,8 @@ type ActiveModule =
   | 'admin-panel'
   | 'more';
 
+const NEIGHBOUR_NETWORK_LOGO = "data:image/jpeg;base64,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";
+
 export default function App() {
   // Core Multi-Tenant State (with persistent database storage for registered member emails & roles)
   const [apartments, setApartments] = useState<Apartment[]>(INITIAL_APARTMENTS);
@@ -553,8 +555,7 @@ export default function App() {
         {/* Top Header */}
         <header className="flex items-center justify-between gap-4 px-6 py-3.5 border-b border-[#D4AF37]/25 bg-[linear-gradient(90deg,rgba(7,2,14,0.94)_0%,rgba(46,16,101,0.88)_50%,rgba(7,2,14,0.94)_100%)] backdrop-blur-md sticky top-0 z-40">
           <div className="flex items-center gap-3 text-xl font-display font-bold tracking-wider text-[#D4AF37]">
-            <LuxuryCrestLogo className="w-9 h-9 shrink-0" />
-            <span className="truncate">Neighbour Network</span>
+            <img src={NEIGHBOUR_NETWORK_LOGO} alt="Neighbour Network" className="h-10 w-[74px] object-contain shrink-0" />
           </div>
 
           <div className="flex items-center gap-2">
@@ -902,8 +903,7 @@ export default function App() {
             }}
             className="flex min-w-0 items-center gap-2 text-sm sm:text-lg font-display font-bold tracking-wider text-[#D4AF37] shrink"
           >
-            <LuxuryCrestLogo className="w-7 h-7 shrink-0" />
-            <span>Neighbour Network</span>
+            <img src={NEIGHBOUR_NETWORK_LOGO} alt="Neighbour Network" className="h-12 w-[88px] object-contain shrink-0" />
           </a>
 
 
