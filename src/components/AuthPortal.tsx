@@ -210,16 +210,14 @@ export function AuthPortal({
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-4 md:p-8 overflow-hidden">
-      {/* Black and Gold Luxury Aesthetic Background Image */}
-      <div className="fixed inset-0 z-0 pointer-events-none bg-[#050507]">
-        <img
-          src="/black-and-gold-aesthetic.svg"
-          alt="Black and Gold Luxury Aesthetic Background"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover scale-102"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/50" />
-      </div>
+      {/* Neon purple-black background to complement the supplied pink and lime community logo */}
+      <div
+        aria-hidden="true"
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 18%, rgba(91, 25, 112, 0.42) 0%, transparent 48%), radial-gradient(ellipse at 12% 75%, rgba(236, 72, 153, 0.10) 0%, transparent 42%), radial-gradient(ellipse at 88% 72%, rgba(163, 230, 53, 0.07) 0%, transparent 38%), linear-gradient(135deg, #030108 0%, #10051b 38%, #080411 68%, #020106 100%)',
+        }}
+      />
 
       {/* Crystal Transparent & Blurred Glassmorphism Portal Card */}
       <div className="relative z-10 w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 rounded-2xl border border-[#D4AF37]/60 backdrop-blur-md bg-black/25 shadow-[0_24px_80px_rgba(0,0,0,0.65)] overflow-hidden">
