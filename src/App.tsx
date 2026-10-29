@@ -54,6 +54,7 @@ import { GovernanceHub } from './components/GovernanceHub';
 import { EmergencyAndHelpdesk } from './components/EmergencyAndHelpdesk';
 import { VisitorGateAccess } from './components/VisitorGateAccess';
 import { AdminDeveloperPanel } from './components/AdminDeveloperPanel';
+import { BuildingModelManager, UploadedBuildingViewer } from './components/UploadedBuildingModel';
 import { MoreMenuHub } from './components/MoreMenuHub';
 import {
   Globe,
@@ -99,6 +100,12 @@ export default function App() {
   useEffect(() => {
     if (!supabase || !currentUserId) return;
     let active = true;
+    const loadApartments = async () => {
+      const { data, error } = await supabase.from('apartments').select('*').order('created_at', { ascending: true });
+      if (!active) return;
+      if (error) console.error('Unable to load residence building metadata:', error.message);
+      else if (data?.length) setApartments(data as Apartment[]);
+    };
     const loadSharedFeed = async () => {
       const { data, error } = await supabase.from('social_posts').select('*').order('created_at', { ascending: false }).limit(MAX_SOCIAL_FEED_POSTS);
       if (error) { console.error('Unable to load shared feed:', error.message); return; }
@@ -210,6 +217,7 @@ export default function App() {
       if (complaintResult.error) console.error('Unable to load shared helpdesk tickets:', complaintResult.error.message);
       else setComplaints((complaintResult.data ?? []) as ComplaintTicket[]);
     };
+    void loadApartments();
     void loadSharedFeed();
     void loadApartmentData();
     void loadVisitorLogs();
@@ -217,6 +225,7 @@ export default function App() {
     void loadAnnouncements();
     void loadEmergencyAndHelpdesk();
     const channel = supabase.channel('neighbour-network-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'apartments' }, () => { void loadApartments(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => { void loadSharedFeed(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_items' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'community_polls' }, () => { void loadApartmentData(); })
@@ -1396,7 +1405,9 @@ export default function App() {
         {/* Right Primary Module Viewport */}
         <main className="w-full min-w-0 max-w-full overflow-x-hidden lg:col-span-9">
           {activeModule === 'feed' && (
-            <GlobalSocialFeed
+            <>
+              <UploadedBuildingViewer apartment={currentApartment} />
+              <GlobalSocialFeed
               posts={socialPosts}
               profiles={profiles}
               apartments={apartments}
@@ -1511,6 +1522,7 @@ export default function App() {
                 );
               }}
             />
+            </>
           )}
 
           {activeModule === 'marketplace' && (
@@ -1923,7 +1935,13 @@ export default function App() {
           )}
 
           {activeModule === 'admin-panel' && hasAdminPanelAccess && (
-            <AdminDeveloperPanel
+            <>
+              <BuildingModelManager
+                apartment={currentApartment}
+                currentUser={currentUser}
+                onSaved={(updatedApartment) => setApartments((previous) => previous.map((item) => item.id === updatedApartment.id ? updatedApartment : item))}
+              />
+              <AdminDeveloperPanel
               apartments={apartments}
               profiles={profiles}
               currentApartment={currentApartment}
@@ -1963,6 +1981,7 @@ export default function App() {
                 else if (data) setProfiles(data as Profile[]);
               }}
             />
+            </>
           )}
 
           {activeModule === 'more' && (
