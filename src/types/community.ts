@@ -15,6 +15,10 @@ export interface Apartment {
     towerCount: number;
     floors: number;
     facadeStyle: 'champagne-glass' | 'obsidian-gold' | 'neo-brutalist-podium';
+    modelFormat?: 'glb' | 'gltf';
+    rootPath?: string;
+    modelRelativePath?: string;
+    assetFiles?: string[];
   };
   created_at: string;
 }
