@@ -313,7 +313,65 @@ export default function App() {
     return () => channel.close();
   }, []);
 
-  const broadcastSOSUpdate = (updatedList: EmergencySOS[]) => {
+  const broadcastSOSUpdate = async (updatedList: EmergencySOS[]) => {
+    // Persist SOS changes in Supabase so every signed-in resident receives them,
+    // not just other tabs in this same browser.
+    if (supabase && currentUser) {
+      const previousById = new Map(sosAlerts.map((item) => [item.id, item]));
+      const persisted: EmergencySOS[] = [];
+      for (const item of updatedList) {
+        const previous = previousById.get(item.id);
+        if (!previous) {
+          const { data, error } = await supabase.from('emergency_sos').insert({
+            apartment_id: item.apartment_id,
+            triggered_by: item.triggered_by,
+            flat_no: item.flat_no,
+            reason: item.reason,
+            is_active: item.is_active,
+            emergency_type: item.emergency_type,
+            created_at: item.created_at,
+          }).select('*').single();
+          if (error || !data) {
+            console.error('Could not publish SOS alert:', error?.message);
+            window.alert('SOS could not be shared with the community. Please try again.');
+            continue;
+          }
+          persisted.push({
+            ...data,
+            triggered_by_name: profiles.find((profile) => profile.id === data.triggered_by)?.full_name ?? item.triggered_by_name,
+            resolved_by_name: data.resolved_by_name ?? undefined,
+          } as EmergencySOS);
+        } else {
+          const changed = previous.is_active !== item.is_active ||
+            previous.resolved_by !== item.resolved_by ||
+            previous.resolved_at !== item.resolved_at;
+          if (changed && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item.id)) {
+            const { data, error } = await supabase.from('emergency_sos').update({
+              is_active: item.is_active,
+              resolved_by: item.resolved_by ?? null,
+              resolved_at: item.resolved_at ?? null,
+              resolved_by_name: item.resolved_by_name ?? null,
+            }).eq('id', item.id).select('*').single();
+            if (error) {
+              console.error('Could not update SOS alert:', error.message);
+              window.alert('SOS status could not be synchronized. Please try again.');
+              persisted.push(previous);
+              continue;
+            }
+            persisted.push({ ...item, ...data } as EmergencySOS);
+          } else {
+            persisted.push(item);
+          }
+        }
+      }
+      setSosAlerts(persisted);
+      if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel('neighbour_network_realtime');
+        channel.postMessage({ type: 'SOS_UPDATE', payload: persisted });
+        channel.close();
+      }
+      return;
+    }
     setSosAlerts(updatedList);
     if (typeof BroadcastChannel !== 'undefined') {
       const channel = new BroadcastChannel('neighbour_network_realtime');
