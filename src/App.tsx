@@ -894,30 +894,8 @@ export default function App() {
             <span>Neighbour Network</span>
           </a>
 
-          {/* Zone 2: Clean single-line text navigation links */}
-          <nav
-            aria-label="Primary Community Modules"
-            className="hidden xl:flex items-center gap-2.5 text-[11px] font-medium text-[#F9F9F9]/75"
-          >
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveModule(item.id)}
-                className={`py-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 ${
-                  activeModule === item.id
-                    ? 'border-[#D4AF37] text-[#D4AF37] font-semibold'
-                    : 'border-transparent hover:text-[#F9F9F9]'
-                }`}
-              >
-                {item.id === 'more'
-                  ? '3D & Credits'
-                  : item.id === 'feed'
-                  ? 'Social Feed'
-                  : item.label}
-              </button>
-            ))}
-          </nav>
+
+          {/* Top module links are intentionally kept out of the header; modules remain available in the navigation menu/sidebar. */}
 
           {/* Zone 3: Small Emergency SOS Button + Notification Button + Guidelines Button + Switch Account */}
           <div className="relative flex items-center gap-1 sm:gap-1.5 shrink-0">
