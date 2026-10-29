@@ -44,8 +44,8 @@ interface MaintenanceAndBillsProps {
     receipt_file_name: string;
     payment_method: MaintenanceBillRecord['payment_method'];
     transaction_ref: string;
-  }) => { error?: string };
-  onMarkPending?: (profileId: string) => void;
+  }) => { error?: string } | Promise<{ error?: string }>;
+  onMarkPending?: (profileId: string) => void | Promise<void>;
 }
 
 function ReceiptScreenshotVisual({
@@ -326,7 +326,7 @@ export function MaintenanceAndBills({
     );
   };
 
-  const handleSubmitForm = (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -335,7 +335,7 @@ export function MaintenanceAndBills({
         ?.profile || currentUser;
 
     const parsedAmount = Number(amountInput);
-    const result = onSubmitReceipt({
+    const result = await onSubmitReceipt({
       apartment_id: currentApartment.id,
       profile_id: targetMember.id,
       flat_no: targetMember.flat_no,
