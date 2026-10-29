@@ -15,7 +15,7 @@
 
   body {
     font-family: var(--font-sans);
-    background: linear-gradient(135deg, #05010A 0%, #3B0764 25%, #090212 50%, #581C87 76%, #040108 100%);
+    background: radial-gradient(ellipse at 18% 18%, rgba(236, 72, 153, 0.12) 0%, transparent 35%), radial-gradient(ellipse at 82% 70%, rgba(163, 230, 53, 0.06) 0%, transparent 30%), linear-gradient(135deg, #030108 0%, #16051f 28%, #080411 55%, #24072f 78%, #020106 100%);
     background-attachment: fixed;
     color: #F9F9F9;
     min-height: 100vh;
@@ -36,17 +36,19 @@
 .account-purple-black-gradient {
   background-color: #06020C;
   background-image:
-    linear-gradient(135deg, #05010A 0%, #4C1D95 22%, #0A0314 48%, #581C87 74%, #2E1065 88%, #040108 100%);
+    radial-gradient(ellipse at 16% 12%, rgba(236, 72, 153, 0.14) 0%, transparent 35%),
+    radial-gradient(ellipse at 86% 78%, rgba(163, 230, 53, 0.07) 0%, transparent 30%),
+    linear-gradient(135deg, #030108 0%, #16051f 28%, #080411 55%, #24072f 78%, #020106 100%);
   background-attachment: fixed;
 }
 
 .account-purple-black-gradient .bg-\[\#141821\] {
-  background: linear-gradient(145deg, rgba(28, 10, 48, 0.76) 0%, rgba(11, 4, 20, 0.84) 100%) !important;
+  background: linear-gradient(145deg, rgba(25, 7, 35, 0.82) 0%, rgba(7, 3, 16, 0.88) 100%) !important;
   backdrop-filter: blur(12px);
 }
 
 .account-purple-black-gradient .bg-\[\#0B0C10\] {
-  background-color: rgba(9, 3, 18, 0.85) !important;
+  background-color: rgba(8, 3, 15, 0.88) !important;
 }
 
 @keyframes sosBorderPulse {
@@ -121,12 +123,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.25);
+  background: rgba(236, 72, 153, 0.32);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(212, 175, 55, 0.5);
+  background: rgba(163, 230, 53, 0.55);
 }
 
 
