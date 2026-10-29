@@ -244,9 +244,12 @@ function ModelCanvas({ apartment, preview }: { apartment: Apartment; preview?: M
         return url;
       });
       const loader = new GLTFLoader(manager);
+      const modelDirectory = modelRelativePath.includes('/')
+        ? modelRelativePath.slice(0, modelRelativePath.lastIndexOf('/') + 1)
+        : '';
       const parseBase = preview
-        ? LOCAL_ASSET_ORIGIN
-        : `${LOCAL_ASSET_ORIGIN}${rootPath}/`;
+        ? `${LOCAL_ASSET_ORIGIN}${modelDirectory}`
+        : `${LOCAL_ASSET_ORIGIN}${rootPath}/${modelDirectory}`;
       const gltf = await loader.parseAsync(modelBuffer, parseBase);
       if (cancelled) {
         gltf.scene.traverse((item: any) => {
