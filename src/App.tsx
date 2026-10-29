@@ -176,6 +176,15 @@ export default function App() {
         amount: Number(row.amount),
       })) as MaintenanceBillRecord[]);
     };
+    const loadAnnouncements = async () => {
+      const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false });
+      if (!active) return;
+      if (error) {
+        console.error('Unable to load shared announcements:', error.message);
+        return;
+      }
+      setAnnouncements((data ?? []) as Announcement[]);
+    };
     const loadProfiles = async () => {
       const { data, error } = await supabase.from('profiles').select('*');
       if (!active) return;
@@ -205,6 +214,7 @@ export default function App() {
     void loadApartmentData();
     void loadVisitorLogs();
     void loadMaintenanceBills();
+    void loadAnnouncements();
     void loadEmergencyAndHelpdesk();
     const channel = supabase.channel('neighbour-network-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => { void loadSharedFeed(); })
@@ -216,6 +226,7 @@ export default function App() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_interests' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visitor_logs' }, () => { void loadVisitorLogs(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_bills' }, () => { void loadMaintenanceBills(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => { void loadAnnouncements(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { void loadProfiles(); void loadEmergencyAndHelpdesk(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_sos' }, () => { void loadEmergencyAndHelpdesk(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'complaint_tickets' }, () => { void loadEmergencyAndHelpdesk(); })
@@ -1733,22 +1744,51 @@ export default function App() {
                 }
                 setEvents((prev) => prev.filter((ev) => ev.id !== eventId));
               }}
-              onCreateAnnouncement={(newAnn) => {
-                setAnnouncements((prev) => [
-                  {
-                    ...newAnn,
-                    id: `ann-${Date.now()}`,
-                    created_at: new Date().toISOString(),
-                  },
-                  ...prev,
-                ]);
+              onCreateAnnouncement={async (newAnn) => {
+                if (!supabase) {
+                  window.alert('Database connection is unavailable. Announcement was not published.');
+                  return;
+                }
+                const { data, error } = await supabase.from('announcements').insert({
+                  apartment_id: newAnn.apartment_id,
+                  created_by: newAnn.created_by,
+                  title: newAnn.title,
+                  content: newAnn.content,
+                  priority: newAnn.priority,
+                  meeting_at: newAnn.meeting_at ?? null,
+                  meeting_mom: newAnn.meeting_mom ?? null,
+                }).select('*').single();
+                if (error || !data) {
+                  console.error('Could not publish announcement:', error?.message);
+                  window.alert(error?.message || 'Announcement could not be published.');
+                  return;
+                }
+                setAnnouncements((prev) => [data as Announcement, ...prev.filter((a) => a.id !== data.id)]);
               }}
-              onUpdateAnnouncement={(updated) => {
-                setAnnouncements((prev) =>
-                  prev.map((a) => (a.id === updated.id ? updated : a))
-                );
+              onUpdateAnnouncement={async (updated) => {
+                if (!supabase) return;
+                const { data, error } = await supabase.from('announcements').update({
+                  title: updated.title,
+                  content: updated.content,
+                  priority: updated.priority,
+                  meeting_at: updated.meeting_at ?? null,
+                  meeting_mom: updated.meeting_mom ?? null,
+                }).eq('id', updated.id).select('*').single();
+                if (error || !data) {
+                  console.error('Could not update announcement:', error?.message);
+                  window.alert(error?.message || 'Announcement could not be updated.');
+                  return;
+                }
+                setAnnouncements((prev) => prev.map((a) => a.id === updated.id ? data as Announcement : a));
               }}
-              onDeleteAnnouncement={(annId) => {
+              onDeleteAnnouncement={async (annId) => {
+                if (!supabase) return;
+                const { error } = await supabase.from('announcements').delete().eq('id', annId);
+                if (error) {
+                  console.error('Could not delete announcement:', error.message);
+                  window.alert('Announcement could not be deleted. Please check your permissions.');
+                  return;
+                }
                 setAnnouncements((prev) => prev.filter((a) => a.id !== annId));
               }}
             />
