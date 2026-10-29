@@ -111,6 +111,8 @@ export interface Announcement {
   title: string;
   content: string;
   priority: 'Standard' | 'Priority' | 'Executive Directive';
+  meeting_at?: string | null;
+  meeting_mom?: string | null;
   created_at: string;
 }
 
