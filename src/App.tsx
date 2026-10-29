@@ -123,11 +123,13 @@ export default function App() {
       })) as SocialPost[]);
     };
     const loadApartmentData = async () => {
-      const [market, pollRows, optionsRows, voteRows] = await Promise.all([
+      const [market, pollRows, optionsRows, voteRows, eventRows, interestRows] = await Promise.all([
         supabase.from('marketplace_items').select('*').order('created_at', { ascending: false }),
         supabase.from('community_polls').select('*').order('created_at', { ascending: false }),
         supabase.from('poll_options').select('*'),
         supabase.from('poll_votes').select('*'),
+        supabase.from('social_events').select('*').order('event_date', { ascending: true }),
+        supabase.from('event_interests').select('event_id,profile_id'),
       ]);
       if (!active) return;
       if (market.error) console.error('Unable to load marketplace:', market.error.message);
@@ -142,6 +144,14 @@ export default function App() {
             id: o.id, label: o.label, votes: votes.filter((v: any) => v.option_id === o.id).map((v: any) => v.profile_id),
           })),
         })) as CommunityPoll[]);
+      }
+      if (eventRows.error) console.error('Unable to load community events:', eventRows.error.message);
+      else {
+        const interests = interestRows.data ?? [];
+        setEvents((eventRows.data ?? []).map((event: any) => ({
+          ...event,
+          interested_ids: interests.filter((item: any) => item.event_id === event.id).map((item: any) => item.profile_id),
+        })) as SocialEvent[]);
       }
     };
     const loadVisitorLogs = async () => {
@@ -165,6 +175,8 @@ export default function App() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'community_polls' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_options' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => { void loadApartmentData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_events' }, () => { void loadApartmentData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_interests' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visitor_logs' }, () => { void loadVisitorLogs(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { void loadProfiles(); })
       .subscribe();
@@ -1504,37 +1516,74 @@ export default function App() {
                 if (error) { console.error('Could not delete poll:', error.message); window.alert('Could not delete poll. Please try again.'); return; }
                 setPolls((prev) => prev.filter((p) => p.id !== pollId));
               }}
-              onToggleEventInterest={(eventId) => {
-                setEvents((prev) =>
-                  prev.map((evt) => {
-                    if (evt.id !== eventId) return evt;
-                    const has = evt.interested_ids.includes(currentUser.id);
-                    return {
-                      ...evt,
-                      interested_ids: has
-                        ? evt.interested_ids.filter((id) => id !== currentUser.id)
-                        : [...evt.interested_ids, currentUser.id],
-                    };
-                  })
-                );
+              onToggleEventInterest={async (eventId) => {
+                if (!supabase) return;
+                const event = events.find((evt) => evt.id === eventId);
+                if (!event) return;
+                const alreadyInterested = event.interested_ids.includes(currentUser.id);
+                const result = alreadyInterested
+                  ? await supabase.from('event_interests').delete().eq('event_id', eventId).eq('profile_id', currentUser.id)
+                  : await supabase.from('event_interests').insert({ event_id: eventId, profile_id: currentUser.id });
+                if (result.error) {
+                  console.error('Could not update event RSVP:', result.error.message);
+                  window.alert('Your event response could not be saved. Please try again.');
+                  return;
+                }
+                setEvents((prev) => prev.map((evt) => evt.id !== eventId ? evt : ({
+                  ...evt,
+                  interested_ids: alreadyInterested
+                    ? evt.interested_ids.filter((id) => id !== currentUser.id)
+                    : [...evt.interested_ids, currentUser.id],
+                })));
               }}
-              onCreateEvent={(newEvt) => {
-                setEvents((prev) => [
-                  {
-                    ...newEvt,
-                    id: `evt-${Date.now()}`,
-                    interested_ids: [currentUser.id],
-                    created_at: new Date().toISOString(),
-                  },
-                  ...prev,
-                ]);
+              onCreateEvent={async (newEvt) => {
+                if (!supabase) {
+                  window.alert('Database connection is unavailable. Events cannot be shared.');
+                  return;
+                }
+                const { data, error } = await supabase.from('social_events').insert({
+                  apartment_id: currentUser.apartment_id,
+                  created_by: currentUser.id,
+                  title: newEvt.title,
+                  description: newEvt.description,
+                  event_date: newEvt.event_date,
+                  venue: newEvt.venue,
+                  dress_code: newEvt.dress_code,
+                }).select('*').single();
+                if (error || !data) {
+                  console.error('Could not save event:', error?.message);
+                  window.alert(error?.message || 'Could not create event. Please try again.');
+                  return;
+                }
+                setEvents((prev) => [{ ...data, interested_ids: [] } as SocialEvent, ...prev]);
               }}
-              onUpdateEvent={(updated) => {
-                setEvents((prev) =>
-                  prev.map((ev) => (ev.id === updated.id ? updated : ev))
-                );
+              onUpdateEvent={async (updated) => {
+                if (!supabase) return;
+                const { data, error } = await supabase.from('social_events').update({
+                  title: updated.title,
+                  description: updated.description,
+                  event_date: updated.event_date,
+                  venue: updated.venue,
+                  dress_code: updated.dress_code,
+                }).eq('id', updated.id).select('*').single();
+                if (error || !data) {
+                  console.error('Could not update event:', error?.message);
+                  window.alert(error?.message || 'Could not update event. Please try again.');
+                  return;
+                }
+                setEvents((prev) => prev.map((ev) => ev.id === updated.id ? ({
+                  ...data,
+                  interested_ids: ev.interested_ids,
+                } as SocialEvent) : ev));
               }}
-              onDeleteEvent={(eventId) => {
+              onDeleteEvent={async (eventId) => {
+                if (!supabase) return;
+                const { error } = await supabase.from('social_events').delete().eq('id', eventId);
+                if (error) {
+                  console.error('Could not delete event:', error.message);
+                  window.alert('Could not delete event. Please check your permissions and try again.');
+                  return;
+                }
                 setEvents((prev) => prev.filter((ev) => ev.id !== eventId));
               }}
               onCreateAnnouncement={(newAnn) => {
