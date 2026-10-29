@@ -105,6 +105,8 @@ export function GovernanceHub({
   const [annContent, setAnnContent] = useState('');
   const [annPriority, setAnnPriority] =
     useState<Announcement['priority']>('Priority');
+  const [annMeetingAt, setAnnMeetingAt] = useState('');
+  const [annMeetingMom, setAnnMeetingMom] = useState('');
 
   const handleSavePoll = (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,6 +197,8 @@ export function GovernanceHub({
           title: annTitle.trim(),
           content: annContent.trim(),
           priority: annPriority,
+          meeting_at: annMeetingAt ? new Date(annMeetingAt).toISOString() : null,
+          meeting_mom: annMeetingMom.trim() || null,
         });
       }
     } else {
@@ -204,6 +208,8 @@ export function GovernanceHub({
         title: annTitle.trim(),
         content: annContent.trim(),
         priority: annPriority,
+        meeting_at: annMeetingAt ? new Date(annMeetingAt).toISOString() : null,
+        meeting_mom: annMeetingMom.trim() || null,
       });
     }
 
@@ -211,6 +217,8 @@ export function GovernanceHub({
     setEditingAnnId(null);
     setAnnTitle('');
     setAnnContent('');
+    setAnnMeetingAt('');
+    setAnnMeetingMom('');
   };
 
   return (
@@ -646,6 +654,8 @@ export function GovernanceHub({
                   setEditingAnnId(null);
                   setAnnTitle('');
                   setAnnContent('');
+                  setAnnMeetingAt('');
+                  setAnnMeetingMom('');
                   setShowAnnForm((prev) => !prev);
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#D4AF37] text-[#0B0C10] font-semibold text-xs cursor-pointer"
@@ -683,6 +693,17 @@ export function GovernanceHub({
                   <option value="Priority">Priority</option>
                   <option value="Standard">Standard</option>
                 </select>
+              </div>
+              <div className="rounded-xl border border-[#D4AF37]/35 bg-[#0B0C10]/70 p-4 space-y-3">
+                <div className="text-sm font-semibold text-[#D4AF37]">Meeting Details</div>
+                <div>
+                  <label className="block text-xs text-[#F9F9F9]/75 mb-1">Meeting date & time (optional)</label>
+                  <input type="datetime-local" value={annMeetingAt} onChange={(e) => setAnnMeetingAt(e.target.value)} className="w-full px-3.5 py-2 rounded-lg bg-[#0B0C10] border border-white/15 text-sm text-[#F9F9F9]" />
+                </div>
+                <div>
+                  <label className="block text-xs text-[#F9F9F9]/75 mb-1">Minutes of Meeting (MOM) / agenda (optional)</label>
+                  <textarea rows={3} value={annMeetingMom} onChange={(e) => setAnnMeetingMom(e.target.value)} placeholder="Add agenda, key discussion points, decisions, and action items..." className="w-full px-3.5 py-2 rounded-lg bg-[#0B0C10] border border-white/15 text-sm text-[#F9F9F9]" />
+                </div>
               </div>
               <textarea
                 rows={3}
@@ -732,6 +753,8 @@ export function GovernanceHub({
                           setAnnTitle(ann.title);
                           setAnnContent(ann.content);
                           setAnnPriority(ann.priority);
+                          setAnnMeetingAt(ann.meeting_at ? new Date(ann.meeting_at).toISOString().slice(0, 16) : '');
+                          setAnnMeetingMom(ann.meeting_mom ?? '');
                           setShowAnnForm(true);
                         }}
                         className="p-1.5 rounded border border-white/15 text-[#F9F9F9]/70 hover:text-[#D4AF37] cursor-pointer"
@@ -757,6 +780,12 @@ export function GovernanceHub({
                 <p className="text-sm text-[#F9F9F9]/80 leading-relaxed">
                   {ann.content}
                 </p>
+                {(ann.meeting_at || ann.meeting_mom) && (
+                  <div className="mt-3 rounded-lg border border-[#D4AF37]/30 bg-[#0B0C10]/60 p-4 space-y-3">
+                    {ann.meeting_at && <div className="flex items-start gap-2 text-sm text-[#F9F9F9]/90"><Calendar className="w-4 h-4 text-[#D4AF37] mt-0.5 shrink-0" /><div><div className="text-xs text-[#D4AF37] font-semibold uppercase tracking-wide">Meeting date & time</div><div>{new Date(ann.meeting_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</div></div></div>}
+                    {ann.meeting_mom && <div><div className="text-xs text-[#D4AF37] font-semibold uppercase tracking-wide mb-1">Minutes of Meeting (MOM) / Agenda</div><p className="text-sm text-[#F9F9F9]/80 whitespace-pre-wrap leading-relaxed">{ann.meeting_mom}</p></div>}
+                  </div>
+                )}
               </div>
             );
           })}
