@@ -1955,7 +1955,7 @@ export default function App() {
 
           {activeModule === 'admin-panel' && hasAdminPanelAccess && (
             <>
-              <ApartmentResidenceSwitcher apartments={apartments} currentApartment={currentApartment} currentUser={currentUser} />
+              <ApartmentResidenceSwitcher apartments={apartments} currentApartment={currentApartment} currentUser={currentUser} profiles={profiles} />
               <BuildingModelManager
                 apartment={currentApartment}
                 currentUser={currentUser}
