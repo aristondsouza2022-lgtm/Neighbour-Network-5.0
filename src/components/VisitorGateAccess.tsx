@@ -112,7 +112,8 @@ export function VisitorGateAccess({
         </div>
       </div>
 
-      {!isGateStaff && (/* Resident Pre-Booking Form */}
+      {/* Resident Pre-Booking Form */}
+      {!isGateStaff && (
       <form
         onSubmit={handleCreatePass}
         className="bg-[#141821] border border-white/10 rounded-xl p-5 space-y-4"
@@ -189,6 +190,7 @@ export function VisitorGateAccess({
           </button>
         </div>
       </form>
+      )}
 
       {/* Visiting Access Cards & Gate Verification Console */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
