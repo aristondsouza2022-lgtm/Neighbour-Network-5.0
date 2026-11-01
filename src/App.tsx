@@ -56,6 +56,7 @@ import { VisitorGateAccess } from './components/VisitorGateAccess';
 import { AdminDeveloperPanel } from './components/AdminDeveloperPanel';
 import { BuildingModelManager, UploadedBuildingViewer } from './components/UploadedBuildingModel';
 import { MoreMenuHub } from './components/MoreMenuHub';
+import { ApartmentResidenceSwitcher } from './components/ApartmentResidenceSwitcher';
 import {
   Globe,
   ShoppingBag,
@@ -1954,6 +1955,7 @@ export default function App() {
 
           {activeModule === 'admin-panel' && hasAdminPanelAccess && (
             <>
+              <ApartmentResidenceSwitcher apartments={apartments} currentApartment={currentApartment} currentUser={currentUser} />
               <BuildingModelManager
                 apartment={currentApartment}
                 currentUser={currentUser}
@@ -2003,7 +2005,9 @@ export default function App() {
           )}
 
           {activeModule === 'more' && (
-            <MoreMenuHub
+            <>
+              <ApartmentResidenceSwitcher apartments={apartments} currentApartment={currentApartment} currentUser={currentUser} />
+              <MoreMenuHub
               profiles={profiles}
               currentApartment={currentApartment}
               currentUser={currentUser}
@@ -2014,7 +2018,8 @@ export default function App() {
                   )
                 );
               }}
-            />
+              />
+            </>
           )}
         </main>
       </div>
