@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Apartment, Profile } from '../types/community';
 import { supabase } from '../lib/supabase';
-import { Building2, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Building2, CheckCircle2, XCircle } from 'lucide-react';
 
 type JoinRequest = {
   id: string;
@@ -16,12 +16,14 @@ interface ApartmentResidenceSwitcherProps {
   apartments: Apartment[];
   currentApartment: Apartment;
   currentUser: Profile;
+  profiles: Profile[];
 }
 
 export function ApartmentResidenceSwitcher({
   apartments,
   currentApartment,
   currentUser,
+  profiles,
 }: ApartmentResidenceSwitcherProps) {
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [targetApartment, setTargetApartment] = useState('');
@@ -176,7 +178,8 @@ export function ApartmentResidenceSwitcher({
           ) : pendingForThisSociety.map((request) => (
             <div key={request.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#0B0C10] p-3">
               <div>
-                <p className="text-sm text-white">Flat {request.requested_flat_no}</p>
+                <p className="text-sm text-white">{profiles.find((profile) => profile.id === request.profile_id)?.full_name ?? 'New resident'} · Flat {request.requested_flat_no}</p>
+                <p className="text-xs text-white/50">{profiles.find((profile) => profile.id === request.profile_id)?.email ?? ''}</p>
                 <p className="text-xs text-white/50">Request received {new Date(request.created_at).toLocaleString()}</p>
               </div>
               <div className="flex gap-2">
