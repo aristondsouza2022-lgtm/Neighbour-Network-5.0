@@ -212,4 +212,49 @@ begin
   end if;
 end $$;
 
+-- Follow-up hardening: target society admins can identify only applicants
+-- who have an active request to their own apartment; developers can review all.
+drop policy if exists apartment_join_requests_target_admin_read on public.apartment_join_requests;
+create policy apartment_join_requests_target_admin_read
+on public.apartment_join_requests for select to authenticated
+using (
+  exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid()
+      and (p.role = 'developer' or (p.apartment_id = apartment_join_requests.apartment_id and p.role = 'admin'))
+  )
+);
+
+create or replace function public.is_pending_join_request_for_current_apartment(p_profile_id uuid)
+returns boolean language sql stable security definer set search_path = public
+as $
+  select exists (
+    select 1 from public.apartment_join_requests jr
+    join public.profiles me on me.id = auth.uid()
+    where jr.profile_id = p_profile_id and jr.apartment_id = me.apartment_id
+      and jr.status = 'pending' and me.role in ('admin','developer')
+  );
+$;
+revoke all on function public.is_pending_join_request_for_current_apartment(uuid) from public;
+grant execute on function public.is_pending_join_request_for_current_apartment(uuid) to authenticated;
+drop policy if exists profiles_select_same_apartment_or_developer on public.profiles;
+create policy profiles_select_same_apartment_or_developer
+on public.profiles for select to authenticated
+using (
+  id = auth.uid()
+  or apartment_id = public.current_profile_apartment_id()
+  or public.current_profile_role() = 'developer'
+  or public.is_pending_join_request_for_current_apartment(id)
+);
+
+drop policy if exists visitor_update_gate_staff on public.visitor_logs;
+create policy visitor_update_gate_staff
+on public.visitor_logs for update to authenticated
+using (
+  exists (select 1 from public.profiles p where p.id = auth.uid() and p.apartment_id = visitor_logs.apartment_id and p.role in ('security','admin','developer'))
+)
+with check (
+  exists (select 1 from public.profiles p where p.id = auth.uid() and p.apartment_id = visitor_logs.apartment_id and p.role in ('security','admin','developer'))
+);
+
 commit;
