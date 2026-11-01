@@ -242,6 +242,17 @@ export default function App() {
     void loadMaintenanceBills();
     void loadAnnouncements();
     void loadEmergencyAndHelpdesk();
+    const visitorChannel = supabase
+      .channel('visitor-logs-live-global')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visitor_logs' }, (payload) => {
+        console.info('[Visitor Realtime] Database change received:', payload.eventType);
+        void loadVisitorLogs();
+      })
+      .subscribe((status, error) => {
+        console.info('[Visitor Realtime] Subscription status:', status);
+        if (error) console.error('[Visitor Realtime] Subscription error:', error.message);
+        if (status === 'SUBSCRIBED') void loadVisitorLogs();
+      });
     const channel = supabase.channel('neighbour-network-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'apartments' }, () => { void loadApartments(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => { void loadSharedFeed(); })
@@ -251,7 +262,6 @@ export default function App() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_events' }, () => { void loadApartmentData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_interests' }, () => { void loadApartmentData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'visitor_logs' }, () => { void loadVisitorLogs(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_bills' }, () => { void loadMaintenanceBills(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => { void loadAnnouncements(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { void loadProfiles(); void loadEmergencyAndHelpdesk(); })
@@ -259,7 +269,7 @@ export default function App() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_notifications' }, () => { void loadEmergencyAndHelpdesk(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'complaint_tickets' }, () => { void loadEmergencyAndHelpdesk(); })
       .subscribe();
-    return () => { active = false; void supabase.removeChannel(channel); };
+    return () => { active = false; void supabase.removeChannel(channel); void supabase.removeChannel(visitorChannel); };
   }, [currentUserId]);
   const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>(
     INITIAL_MARKETPLACE_ITEMS
