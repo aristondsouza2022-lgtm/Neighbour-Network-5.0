@@ -199,8 +199,9 @@ export default function App() {
       else setProfiles((data ?? []) as Profile[]);
     };
     const loadEmergencyAndHelpdesk = async () => {
-      const [sosResult, complaintResult, profileResult] = await Promise.all([
+      const [sosResult, notificationResult, complaintResult, profileResult] = await Promise.all([
         supabase.from('emergency_sos').select('*').order('created_at', { ascending: false }),
+        supabase.from('emergency_notifications').select('*').order('created_at', { ascending: false }),
         supabase.from('complaint_tickets').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('id,full_name'),
       ]);
@@ -208,11 +209,27 @@ export default function App() {
       if (sosResult.error) console.error('Unable to load shared SOS alerts:', sosResult.error.message);
       else {
         const names = new Map((profileResult.data ?? []).map((p: any) => [p.id, p.full_name]));
-        setSosAlerts((sosResult.data ?? []).map((row: any) => ({
+        const privateDetails = (sosResult.data ?? []).map((row: any) => ({
           ...row,
           triggered_by_name: names.get(row.triggered_by) ?? 'Community member',
           resolved_by_name: row.resolved_by_name ?? (names.get(row.resolved_by) ?? null),
-        })) as EmergencySOS[]);
+        }));
+        const detailIds = new Set(privateDetails.map((row: any) => row.id));
+        const residentNotifications = (notificationResult.data ?? [])
+          .filter((row: any) => !detailIds.has(row.sos_id))
+          .map((row: any) => ({
+            id: row.sos_id,
+            apartment_id: row.apartment_id,
+            triggered_by: row.triggered_by,
+            triggered_by_name: names.get(row.triggered_by) ?? 'Community member',
+            flat_no: row.flat_no,
+            emergency_type: row.emergency_type,
+            reason: 'An emergency alert has been triggered. Contact the resident or society security.',
+            is_active: row.is_active,
+            created_at: row.created_at,
+            resolved_at: row.resolved_at,
+          }));
+        setSosAlerts([...privateDetails, ...residentNotifications] as EmergencySOS[]);
       }
       if (complaintResult.error) console.error('Unable to load shared helpdesk tickets:', complaintResult.error.message);
       else setComplaints((complaintResult.data ?? []) as ComplaintTicket[]);
@@ -238,6 +255,7 @@ export default function App() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => { void loadAnnouncements(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { void loadProfiles(); void loadEmergencyAndHelpdesk(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_sos' }, () => { void loadEmergencyAndHelpdesk(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_notifications' }, () => { void loadEmergencyAndHelpdesk(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'complaint_tickets' }, () => { void loadEmergencyAndHelpdesk(); })
       .subscribe();
     return () => { active = false; void supabase.removeChannel(channel); };
@@ -436,7 +454,7 @@ export default function App() {
 
   const isApartmentSOSActive = useMemo(() => {
     if (!currentUser) return false;
-    return hasActiveApartmentSOS(sosAlerts, currentApartment.id);
+    return sosAlerts.some((alert) => alert.apartment_id === currentApartment.id && alert.triggered_by === currentUser.id && alert.is_active);
   }, [sosAlerts, currentApartment.id, currentUser]);
 
   // Pending unverified members in the current apartment waiting for Admin / Developer approval
