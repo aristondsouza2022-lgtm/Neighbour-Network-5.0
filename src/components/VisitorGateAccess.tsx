@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Apartment, Profile, VisitorLog } from '../types/community';
 import {
   calculateStayDurationMinutes,
@@ -52,9 +52,21 @@ export function VisitorGateAccess({
       .toISOString()
       .slice(0, 16)
   );
-  const [vehicleInputMap, setVehicleInputMap] = useState<
-    Record<string, string>
-  >({});
+  const [vehicleInputMap, setVehicleInputMap] = useState<Record<string, string>>({});
+  const previousVisitorIds = useRef<Set<string>>(new Set());
+  const [newVisitorIds, setNewVisitorIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const currentIds = new Set(logs.map((log) => log.id));
+    const added = [...currentIds].filter((id) => !previousVisitorIds.current.has(id));
+    if (previousVisitorIds.current.size > 0 && added.length > 0) {
+      setNewVisitorIds(new Set(added));
+      const clear = window.setTimeout(() => setNewVisitorIds(new Set()), 1800);
+      previousVisitorIds.current = currentIds;
+      return () => window.clearTimeout(clear);
+    }
+    previousVisitorIds.current = currentIds;
+  }, [logs]);
 
   // Residents only see their own passes. Gate staff see all passes for this society.
   const aptLogs = filterByApartmentScope(logs, currentApartment.id);
@@ -86,7 +98,7 @@ export function VisitorGateAccess({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6">\n      <style>{`@keyframes visitor-card-in { from { opacity: 0; transform: translateY(-12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }`}</style>
       {/* Header Banner */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-[#141821] border border-[#D4AF37]/30 rounded-xl p-5">
         <div>
@@ -203,7 +215,7 @@ export function VisitorGateAccess({
           return (
             <div
               key={log.id}
-              className="bg-gradient-to-br from-[#141821] to-[#0B0C10] border border-[#D4AF37]/35 rounded-xl p-5 flex flex-col justify-between space-y-4"
+              className={`bg-gradient-to-br from-[#141821] to-[#0B0C10] border rounded-xl p-5 flex flex-col justify-between space-y-4 transition-all duration-500 ${newVisitorIds.has(log.id) ? 'border-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.25)] animate-[visitor-card-in_450ms_ease-out]' : 'border-[#D4AF37]/35'}`}
             >
               <div>
                 {/* Top Crest & 6-Digit Verification Pass Code */}
