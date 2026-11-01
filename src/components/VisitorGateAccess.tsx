@@ -56,8 +56,12 @@ export function VisitorGateAccess({
     Record<string, string>
   >({});
 
-  // Strictly isolated to current apartment
+  // Residents only see their own passes. Gate staff see all passes for this society.
   const aptLogs = filterByApartmentScope(logs, currentApartment.id);
+  const isGateStaff = ['security', 'admin', 'developer'].includes(currentUser.role);
+  const visibleLogs = isGateStaff
+    ? aptLogs
+    : aptLogs.filter((log) => log.resident_id === currentUser.id);
 
   const handleCreatePass = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +112,7 @@ export function VisitorGateAccess({
         </div>
       </div>
 
-      {/* Resident Pre-Booking Form */}
+      {!isGateStaff && (/* Resident Pre-Booking Form */}
       <form
         onSubmit={handleCreatePass}
         className="bg-[#141821] border border-white/10 rounded-xl p-5 space-y-4"
@@ -188,7 +192,7 @@ export function VisitorGateAccess({
 
       {/* Visiting Access Cards & Gate Verification Console */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {aptLogs.map((log) => {
+        {visibleLogs.map((log) => {
           const vehicleVal =
             vehicleInputMap[log.id] !== undefined
               ? vehicleInputMap[log.id]
@@ -286,6 +290,7 @@ export function VisitorGateAccess({
               </div>
 
               {/* Gate Security Action Controls */}
+              {isGateStaff && (
               <div className="pt-3 border-t border-white/10">
                 {log.status === 'pre_booked' && (
                   <div className="flex flex-wrap items-center gap-2">
@@ -344,6 +349,7 @@ export function VisitorGateAccess({
                   </div>
                 )}
               </div>
+              )}
             </div>
           );
         })}
